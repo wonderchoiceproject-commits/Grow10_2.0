@@ -100,7 +100,7 @@ aside {
   flex-direction: column;
   padding:        1.5rem 1rem;
   gap:            1.5rem;
-  z-index:        100;
+  z-index:        1000;
   transition:     transform var(--transition);
 }
 
@@ -851,7 +851,13 @@ a:hover { text-decoration: underline; }
 
   aside {
     transform: translateX(-100%);
-    width: 220px;
+    width: 260px;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+  
+  /* サイドバー表示時のクラス */
+  aside.show {
+    transform: translateX(0);
   }
 
   main { margin-left: 0; }
@@ -861,6 +867,52 @@ a:hover { text-decoration: underline; }
 
   header          { padding: 1rem 1.25rem; }
   .content-body   { padding: 1.25rem; }
+  
+  /* 縦並びのモバイル調整 */
+  .goals-container {
+    flex-direction: column;
+  }
+  .overall-goal-banner {
+    min-width: 100% !important;
+  }
+  
+  /* Scorecard Header Mobile */
+  .scorecard-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  .scorecard-header h1 {
+    font-size: 2rem !important;
+  }
+  .scorecard-header-text span {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Scorecard Layout Mobile */
+  .scorecard-main-layout {
+    flex-direction: column;
+    gap: 1.5rem !important;
+  }
+  .scorecard-sidebar {
+    width: 100% !important;
+    flex-direction: row !important;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem !important;
+  }
+  .scorecard-sidebar button {
+    text-align: center !important;
+    font-size: 1rem !important;
+    padding: 0.5rem 1rem !important;
+    border-bottom-width: 2px !important;
+  }
+  .scorecard-content-area {
+    height: 350px !important;
+    padding: 10px !important;
+  }
 }
 
 @media (max-width: 560px) {
@@ -868,6 +920,41 @@ a:hover { text-decoration: underline; }
   .kpi-container   { grid-template-columns: 1fr 1fr; }
   .header-controls { gap: 6px; }
   .select-wrapper select { min-width: 120px; font-size: 0.78rem; }
+  
+  .card { padding: 1.25rem; }
+  .mobile-menu-btn { display: block; }
+  
+  .chigiri-modal-content {
+    padding: 2rem 1.5rem;
+  }
+}
+
+/* =========================================================
+   MOBILE MENU & OVERLAY
+========================================================= */
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 0 5px;
+}
+@media (max-width: 860px) {
+  .mobile-menu-btn { display: block; }
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 999;
+}
+.sidebar-overlay.show {
+  display: block;
 }
 
 /* =========================================================
@@ -1087,4 +1174,78 @@ a:hover { text-decoration: underline; }
   display:   inline-block;
   font-size: 1.3rem;
   animation: grow10spin 0.9s linear infinite;
+}
+/* Scorecard Layout Base (PC) */
+.scorecard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 3rem;
+}
+.scorecard-header h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  font-family: var(--font-header);
+}
+.scorecard-badge {
+  width: 150px;
+  height: 150px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.2));
+  border: 2px solid rgba(56, 189, 248, 0.4);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #e8eaff;
+  box-shadow: 0 4px 25px rgba(56, 189, 248, 0.25);
+}
+#sc-total-score {
+  font-size: 3.2rem;
+  font-weight: 800;
+  font-family: var(--font-header);
+  text-shadow: 0 2px 10px rgba(56, 189, 248, 0.5);
+}
+
+.scorecard-main-layout {
+  display: flex;
+  gap: 3rem;
+  margin-bottom: 3rem;
+}
+.scorecard-sidebar {
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-top: 1rem;
+}
+.scorecard-sidebar button {
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 4px solid rgba(255,255,255,0.1);
+  font-size: 1.4rem;
+  font-weight: bold;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+.scorecard-sidebar button.active {
+  border-bottom-color: #38bdf8;
+  color: var(--text-primary);
+}
+
+.scorecard-content-area {
+  flex: 1;
+  height: 450px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
 }

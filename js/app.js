@@ -23,6 +23,14 @@ function switchTab(tabId) {
     if (tabId === 'by-items' && typeof renderByItemsTab === 'function') {
         renderByItemsTab('協調性'); // default dimension
     }
+
+    // スマホ時にタブを切り替えたらサイドバーを自動で閉じる
+    const sidebar = document.querySelector('aside');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sidebar && sidebar.classList.contains('show')) {
+        sidebar.classList.remove('show');
+        if (overlay) overlay.classList.remove('show');
+    }
 }
 
 function closeModal(id) {
@@ -219,6 +227,18 @@ function switchScorecardSubtab(tabName) {
     if (activePane) {
         activePane.style.display = 'block';
         activePane.classList.add('active');
+    }
+}
+
+// Mobile sidebar toggle
+function toggleSidebar() {
+    const sidebar = document.querySelector('aside');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sidebar) {
+        sidebar.classList.toggle('show');
+    }
+    if (overlay) {
+        overlay.classList.toggle('show');
     }
 }
 
