@@ -98,13 +98,35 @@
       <!-- ================= TAB 1: DASHBOARD ================= -->
       <section id="tab-dashboard" class="tab-pane active">
         
-        <!-- Overall Goal Banner -->
-        <div class="overall-goal-banner">
-          <div class="banner-icon">🔥</div>
-          <div class="banner-content">
-            <div class="banner-title">今月の全体目標</div>
-            <div class="banner-text">全員で月間総フィードバック数300件を達成し、圧倒的な成長環境を創る！</div>
+        <!-- Team & Personal Goal Banners -->
+        <div style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+          
+          <!-- Team Goal -->
+          <div class="overall-goal-banner" style="flex: 1; min-width: 300px; margin-bottom: 0; background: linear-gradient(135deg, rgba(129, 140, 248, 0.15) 0%, rgba(167, 139, 250, 0.15) 100%); border: 1px solid rgba(129, 140, 248, 0.3); box-shadow: none;">
+            <div class="banner-icon" style="font-size: 2.5rem;">🔥</div>
+            <div class="banner-content">
+              <div class="banner-title" style="color: var(--accent-indigo);">団体目標</div>
+              <div class="banner-text" style="font-size: 1.25rem; margin-bottom: 10px; color: var(--text-primary);">「協調性」の全体平均を3.5以上にする</div>
+              <div style="font-size: 0.9rem; color: var(--text-secondary); background: rgba(0,0,0,0.3); padding: 10px 14px; border-radius: 6px; border-left: 3px solid var(--accent-indigo); line-height: 1.5;">
+                <strong>目標の理由:</strong><br>
+                先月のアンケートで「チーム間の連携不足」が課題として浮き彫りになったため。全員でコミュニケーションを増やし、助け合う風土を作ります。
+              </div>
+            </div>
           </div>
+
+          <!-- Personal Goal -->
+          <div class="overall-goal-banner" style="flex: 1; min-width: 300px; margin-bottom: 0; background: linear-gradient(135deg, rgba(52, 211, 153, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%); border: 1px solid rgba(52, 211, 153, 0.3); box-shadow: none;">
+            <div class="banner-icon" style="font-size: 2.5rem;">🎯</div>
+            <div class="banner-content">
+              <div class="banner-title" style="color: var(--accent-emerald);">個人目標</div>
+              <div class="banner-text" style="font-size: 1.25rem; margin-bottom: 10px; color: var(--text-primary);">「積極性」の評価スコアを向上させる</div>
+              <div style="font-size: 0.9rem; color: var(--text-secondary); background: rgba(0,0,0,0.3); padding: 10px 14px; border-radius: 6px; border-left: 3px solid var(--accent-emerald); line-height: 1.5;">
+                <strong>目標の理由:</strong><br>
+                今まで受け身になりがちだったので、今月は会議での発言回数を増やし、自分からプロジェクトの改善案を提案できるようにするため。
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <div class="grid-dashboard">
@@ -148,20 +170,7 @@
 
           <!-- Right Column -->
           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-            <!-- My Score Overview -->
-            <div class="card" style="text-align: center;">
-              <h2 class="card-title" style="justify-content: center; margin-bottom: 1rem;">🌟 あなたの評価サマリー</h2>
-              <div class="kpi-container" style="grid-template-columns: 1fr;">
-                <div class="kpi-card" style="background: rgba(0,0,0,0.015); border-radius: var(--border-radius-md); border: 1px solid var(--card-border);">
-                  <div class="kpi-value" id="user-avg-value">0.00</div>
-                  <div class="kpi-label">総合平均点</div>
-                </div>
-              </div>
-              <div style="height: 250px; margin-top: 1rem; position: relative;">
-                <canvas id="miniRadarChart"></canvas>
-              </div>
-            </div>
-
+            <!-- サマリーカードは削除されました -->
             <!-- Feedback Feed Card -->
             <div class="card">
               <h2 class="card-title">💬 最近届いたフィードバック</h2>
