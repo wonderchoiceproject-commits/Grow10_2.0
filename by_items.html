@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GROW10 評価基準ダッシュボード (ダークモード)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-main: #0f172a;        /* 黒（濃いネイビーブラック）を基調 */
+            --bg-card: #1e293b;        /* カード背景 */
+            --bg-sidebar: #111827;     /* サイドバーの深い黒 */
+            --text-primary: #38bdf8;   /* 文字・アクセント色（鮮やかな青） */
+            --text-secondary: #94a3b8; /* サブ文字（グレー） */
+            --text-white: #f8fafc;     /* 本文テキスト（白） */
+            --border-color: #334155;   /* 枠線 */
+            --primary-light: rgba(56, 189, 248, 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-white);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* サイドバーメニュー */
+        .sidebar {
+            width: 250px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 0;
+            flex-shrink: 0;
+        }
+        .sidebar-brand {
+            padding: 0 24px 24px;
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .menu-list { list-style: none; padding: 0 12px; overflow-y: auto; flex-grow: 1; }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+        .menu-item i { width: 20px; text-align: center; color: var(--text-secondary); }
+        .menu-item:hover, .menu-item.active {
+            background-color: var(--primary-light);
+            color: var(--text-primary);
+            font-weight: bold;
+        }
+        .menu-item:hover i, .menu-item.active i { color: var(--text-primary); }
+
+        /* メインコンテンツエリア */
+        .main-container { flex-grow: 1; padding: 40px; max-width: 1200px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px; }
+        .header-card {
+            background-color: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 32px;
+            border-left: 6px solid var(--text-primary);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+        .item-badge { display: inline-block; background-color: var(--primary-light); color: var(--text-primary); padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 12px; border: 1px solid rgba(56, 189, 248, 0.3); }
+        .item-title { font-size: 28px; font-weight: 700; margin-bottom: 12px; color: var(--text-primary); }
+        .item-description { font-size: 15px; color: var(--text-white); line-height: 1.6; }
+
+        /* 統計カード */
+        .stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+        .stat-card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; display: flex; align-items: center; gap: 20px; }
+        .stat-icon { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background-color: var(--primary-light); color: var(--text-primary); }
+        .stat-icon.avg { background-color: rgba(52, 211, 153, 0.1); color: #34d399; }
+        .stat-info { display: flex; flex-direction: column; }
+        .stat-label { font-size: 14px; color: var(--text-secondary); margin-bottom: 4px; }
+        .stat-value { font-size: 32px; font-weight: bold; color: var(--text-white); }
+        .stat-value span { font-size: 16px; color: var(--text-secondary); font-weight: normal; }
+
+        /* 下部グリッドレイアウト */
+        .dashboard-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px; }
+        .card { background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 28px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); }
+        .card-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: var(--text-primary); }
+        .chart-container { position: relative; height: 320px; width: 100%; }
+
+        /* ランキングテーブル */
+        .ranking-table { width: 100%; border-collapse: collapse; }
+        .ranking-table th { text-align: left; padding: 12px; font-size: 13px; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); }
+        .ranking-table td { padding: 14px 12px; font-size: 15px; border-bottom: 1px solid #334155; color: var(--text-white); }
+        .rank-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; background-color: #334155; color: var(--text-white); }
+        .rank-badge.gold { background-color: #fbbf24; color: #1e293b; }
+        .rank-badge.silver { background-color: #94a3b8; color: #1e293b; }
+        .rank-badge.bronze { background-color: #d97706; color: #1e293b; }
+        .score-cell { text-align: right; font-weight: bold; color: var(--text-primary); }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-brand"><i class="fa-solid fa-chart-line"></i> GROW10</div>
+        <ul class="menu-list" id="menuList"></ul>
+    </div>
+
+    <div class="main-container">
+        <div class="header-card">
+            <span class="item-badge" id="itemBadge">GROW10 - 指針</span>
+            <h1 class="item-title" id="itemTitle">項目名</h1>
+            <p class="item-description" id="itemDescription">説明文</p>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fa-solid fa-calculator"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">組織内平均点 (10点満点)</span>
+                    <div class="stat-value" id="statAverage">0.0 <span>/ 10.0</span></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon avg"><i class="fa-solid fa-users"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">評価対象人数</span>
+                    <div class="stat-value" id="statTotalUsers">0 <span>人</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card">
+                <h2 class="card-title"><i class="fa-solid fa-chart-bar"></i> 点数別 度数分布（人数）</h2>
+                <div class="chart-container"><canvas id="growChart"></canvas></div>
+            </div>
+            <div class="card">
+                <h2 class="card-title"><i class="fa-solid fa-trophy" style="color: #fbbf24;"></i> 上位5名 ランキング</h2>
+                <table class="ranking-table">
+                    <thead><tr><th style="width: 60px;">順位</th><th>氏名</th><th style="text-align: right;">点数</th></tr></thead>
+                    <tbody id="rankingBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 10点満点基準に合わせて平均値、度数分布(10項目分)、ランキングスコアを設定
+        const growData = {
+            1: { name: "協調性", icon: "fa-users", description: "自分だけという考えを持たず、仲間のために尽くせる人。", average: 7.6, totalUsers: 51, distribution: [0, 1, 2, 5, 8, 14, 12, 6, 2, 1], ranking: [{name:"山田 太郎", score:9.8}, {name:"佐藤 美咲", score:9.6}, {name:"鈴木 一郎", score:9.4}, {name:"高橋 健太", score:9.2}, {name:"田中 裕子", score:9.1}] },
+            2: { name: "素真面目さ（素直さ）", icon: "fa-heart", description: "人の意見をよく聞き、常に反省し、自分自身を見つめられる人。", average: 8.2, totalUsers: 51, distribution: [0, 0, 1, 3, 5, 12, 18, 8, 3, 1], ranking: [{name:"伊藤 さくら", score:9.9}, {name:"渡辺 直樹", score:9.5}, {name:"小林 誠", score:9.2}, {name:"中村 結衣", score:8.8}, {name:"斉藤 隆", score:8.5}] },
+            3: { name: "積極性", icon: "fa-rocket", description: "原因を他人に求めず、できない理由をいうのではなく、どうしたらできるかを常に考える人。", average: 7.2, totalUsers: 51, distribution: [1, 2, 4, 8, 12, 14, 6, 3, 1, 0], ranking: [{name:"加藤 翔太", score:10.0}, {name:"森田 健一", score:9.7}, {name:"松本 恵子", score:9.5}, {name:"山口 敦", score:9.0}, {name:"前田 健", score:8.6}] },
+            4: { name: "明るさ", icon: "fa-sun", description: "仕事上明るい人。(好奇心旺盛、すぐ声がでる、動作が機敏、目が輝いている)", average: 8.6, totalUsers: 51, distribution: [0, 0, 0, 2, 4, 12, 18, 10, 4, 1], ranking: [{name:"佐々木 陽子", score:9.9}, {name:"岡田 拓海", score:9.8}, {name:"清水 翔", score:9.5}, {name:"石井 杏奈", score:9.4}, {name:"西村 太一", score:9.3}] },
+            5: { name: "礼儀正しさ", icon: "fa-handshake", description: "単に挨拶ができるだけでなく、気持ちのいい対応ができる人。", average: 8.0, totalUsers: 51, distribution: [0, 1, 2, 4, 8, 15, 13, 5, 2, 1], ranking: [{name:"安藤 雅也", score:10.0}, {name:"千葉 絵里", score:9.9}, {name:"後藤 充", score:9.5}, {name:"長谷川 巧", score:9.2}, {name:"村上 健治", score:9.0}] },
+            6: { name: "清潔さ", icon: "fa-broom", description: "自分本位でなく、他人からどう見えているかを意識し行動できる人。", average: 7.8, totalUsers: 51, distribution: [0, 1, 2, 3, 9, 16, 12, 5, 2, 1], ranking: [{name:"藤田 浩二", score:9.8}, {name:"小川 智子", score:9.6}, {name:"遠藤 俊介", score:9.2}, {name:"菊地 真一", score:9.0}, {name:"青木 健", score:8.8}] },
+            7: { name: "正確さ", icon: "fa-bullseye", description: "決められたことは忠実に継続して守れる人。一つ一つのことがきっちりできる人。", average: 8.4, totalUsers: 51, distribution: [0, 0, 1, 2, 5, 12, 19, 8, 3, 1], ranking: [{name:"野村 健太", score:9.9}, {name:"林 裕子", score:9.7}, {name:"酒井 誠", score:9.6}, {name:"柴田 大介", score:9.4}, {name:"織田 信也", score:9.2}] },
+            8: { name: "懸命さ", icon: "fa-fire", description: "なんにでも一生懸命に取り組める人。適当な仕事をしない人。", average: 8.8, totalUsers: 51, distribution: [0, 0, 0, 1, 3, 10, 20, 12, 4, 1], ranking: [{name:"山崎 大輔", score:10.0}, {name:"新井 美穂", score:10.0}, {name:"小野寺 徹", score:9.8}, {name:"高木 聡", score:9.6}, {name:"武田 秀一", score:9.5}] },
+            9: { name: "柔軟性", icon: "fa-leaf", description: "変化に対してやってみようと思える人。なんでも吸収しようとする人。", average: 7.4, totalUsers: 51, distribution: [1, 2, 3, 6, 11, 15, 8, 3, 1, 1], ranking: [{name:"小川 美香", score:9.8}, {name:"杉山 竜也", score:9.4}, {name:"大塚 蓮", score:9.2}, {name:"久保田 明", score:9.0}, {name:"松井 玲奈", score:8.8}] },
+            10: { name: "ホスピタリティ", icon: "fa-face-smile", description: "関わった人に幸せを与えられる人。「お蔭様」、「お互い様」という気持ちの持てる人。", average: 9.0, totalUsers: 51, distribution: [0, 0, 0, 0, 2, 8, 18, 15, 6, 2], ranking: [{name:"佐々木 怜", score:10.0}, {name:"加藤 健太", score:9.9}, {name:"市川 紗季", score:9.8}, {name:"和泉 拓也", score:9.6}, {name:"大野 智史", score:9.6}] }
+        };
+
+        let currentChart = null;
+        const menuList = document.getElementById('menuList');
+
+        // サイドバー生成
+        Object.keys(growData).forEach(id => {
+            const item = growData[id];
+            const li = document.createElement('li');
+            li.className = `menu-item ${id == 1 ? 'active' : ''}`;
+            li.innerHTML = `<i class="fa-solid ${item.icon}"></i> <span>③-${id} ${item.name}</span>`;
+            li.onclick = () => switchTab(id, li);
+            menuList.appendChild(li);
+        });
+
+        // 画面切り替え処理
+        function switchTab(id, element) {
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+
+            const data = growData[id];
+            document.getElementById('itemBadge').innerText = `GROW10 - 指針 ⑩-${id}`;
+            document.getElementById('itemTitle').innerText = data.name;
+            document.getElementById('itemDescription').innerText = data.description;
+            document.getElementById('statAverage').innerHTML = `${data.average.toFixed(1)} <span>/ 10.0</span>`;
+            document.getElementById('statTotalUsers').innerHTML = `${data.totalUsers} <span>人</span>`;
+
+            // ランキング生成
+            const rankingBody = document.getElementById('rankingBody');
+            rankingBody.innerHTML = '';
+            data.ranking.forEach((user, index) => {
+                const rankNum = index + 1;
+                const rankClass = rankNum === 1 ? 'gold' : rankNum === 2 ? 'silver' : rankNum === 3 ? 'bronze' : '';
+                rankingBody.innerHTML += `<tr><td><span class="rank-badge ${rankClass}">${rankNum}</span></td><td>${user.name}</td><td class="score-cell">${user.score.toFixed(1)}</td></tr>`;
+            });
+
+            // グラフ描画（1点〜10点満点）
+            const ctx = document.getElementById('growChart').getContext('2d');
+            if (currentChart) currentChart.destroy();
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['1点', '2点', '3点', '4点', '5点', '6点', '7点', '8点', '9点', '10点'],
+                    datasets: [{ 
+                        data: data.distribution, 
+                        backgroundColor: '#38bdf8', 
+                        hoverBackgroundColor: '#0ea5e9', 
+                        borderRadius: 6 
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { color: '#334155' }
+                        },
+                        x: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        window.onload = () => { switchTab(1, document.querySelector('.menu-item')); };
+    </script>
+</body>
+</html>

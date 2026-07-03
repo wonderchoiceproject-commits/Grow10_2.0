@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GROW10 - 学び合い成長プラットフォーム</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js CDN for interactive visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  
+  <!-- Babel for in-browser JSX compilation -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      corePlugins: {
+        preflight: false, // 既存のCSS（style.css）を崩さないために無効化
+      },
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-200">
+
+  <!-- ローディングバナーはレイアウト重なりの原因になるため削除 -->
+
+  <!-- Sidebar Navigation -->
+  <aside>
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <span>GROW10 Dashboard</span>
+    </div>
+    <ul class="nav-links">
+      <li class="nav-item active" id="nav-dashboard">
+        <button onclick="switchTab('dashboard')">
+          <span>🏠</span> ダッシュボード
+        </button>
+      </li>
+      <li class="nav-item" id="nav-scorecard">
+        <button onclick="switchTab('scorecard')">
+          <span>👤</span> 個人成績表
+        </button>
+      </li>
+      <li class="nav-item" id="nav-entire-result">
+        <button onclick="switchTab('entire-result')">
+          <span>📈</span> 全体集計
+        </button>
+      </li>
+      <li class="nav-item" id="nav-by-items">
+        <button onclick="switchTab('by-items')">
+          <span>🏆</span> 項目ごと集計
+        </button>
+      </li>
+      <!-- ADDED TAB 5: SCORING -->
+      <li class="nav-item" id="nav-scoring">
+        <button onclick="switchTab('scoring')">
+          <span>✍️</span> 成績をつける
+        </button>
+      </li>
+    </ul>
+    
+    <!-- User Switcher Trigger -->
+    <div class="sidebar-profile" onclick="openUserSwitcherModal()" title="クリックしてユーザーを切り替える">
+      <div class="profile-avatar" id="current-user-avatar">👨‍💻</div>
+      <div class="profile-info">
+        <div class="profile-name" id="current-user-name">なお</div>
+        <div class="profile-role">🔄 ユーザー切替</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main>
+    <!-- Top Header & Global Filters -->
+    <header>
+      <h1 id="page-title">ダッシュボード</h1>
+      <div class="header-controls">
+        <!-- 不要になったプロジェクト・期間選択プルダウンは削除 -->
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="content-body">
+
+      <!-- ================= TAB 1: DASHBOARD ================= -->
+      <section id="tab-dashboard" class="tab-pane active">
+        
+        <!-- Overall Goal Banner -->
+        <div class="overall-goal-banner">
+          <div class="banner-icon">🔥</div>
+          <div class="banner-content">
+            <div class="banner-title">今月の全体目標</div>
+            <div class="banner-text">全員で月間総フィードバック数300件を達成し、圧倒的な成長環境を創る！</div>
+          </div>
+        </div>
+
+        <div class="grid-dashboard">
+          <!-- Left Column -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <!-- Chigiri (Pledge) Display Card -->
+            <div class="card chigiri-display-card">
+              <h2 class="card-title" style="color: var(--accent-amber);">⚔️ 今日の契り (Chigiri)</h2>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+                あなたが今日、全力を尽くすと誓った行動です。
+              </p>
+              <div class="chigiri-content" id="current-chigiri-text">
+                まだ契りが立てられていません。
+              </div>
+              <button class="btn-secondary" style="width: 100%; margin-top: 1rem; border-color: var(--accent-amber); color: var(--accent-amber);" onclick="openChigiriModal(true)">
+                契りを更新する
+              </button>
+            </div>
+
+            <!-- Monthly Goal & GROW Reflection Card -->
+            <div class="card">
+              <h2 class="card-title">🎯 今月の個人目標とGROW振り返り</h2>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+                目標を設定し、定期的に振り返り(GROWモデル)を行いましょう。
+              </p>
+              <textarea id="monthly-goal-text" class="goal-input-area" placeholder="今月取り組む目標を入力してください..."></textarea>
+              
+              <div class="progress-container">
+                <span class="progress-label">現在の自己達成度:</span>
+                <input type="range" id="goal-progress-slider" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)">
+                <span class="progress-label" id="progress-val">0%</span>
+              </div>
+              
+              <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button class="btn-primary" style="flex: 1;" onclick="saveMonthlyGoal()">💾 目標を保存</button>
+                <button class="btn-secondary" style="flex: 1;" onclick="openGrowModal()">🌱 振り返る(GROW)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- My Score Overview -->
+            <div class="card" style="text-align: center;">
+              <h2 class="card-title" style="justify-content: center; margin-bottom: 1rem;">🌟 あなたの評価サマリー</h2>
+              <div class="kpi-container" style="grid-template-columns: 1fr;">
+                <div class="kpi-card" style="background: rgba(0,0,0,0.015); border-radius: var(--border-radius-md); border: 1px solid var(--card-border);">
+                  <div class="kpi-value" id="user-avg-value">0.00</div>
+                  <div class="kpi-label">総合平均点</div>
+                </div>
+              </div>
+              <div style="height: 250px; margin-top: 1rem; position: relative;">
+                <canvas id="miniRadarChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Feedback Feed Card -->
+            <div class="card">
+              <h2 class="card-title">💬 最近届いたフィードバック</h2>
+              <div class="feedback-list" id="feedback-container">
+                <!-- Javascript will populate this -->
+              </div>
+              <button class="btn-secondary" style="width: 100%; margin-top: 0.5rem; justify-content: center;" onclick="openCommentsModal()">💬 すべて見る</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: INDIVIDUAL SCORECARD ================= -->
+      <section id="tab-scorecard" class="tab-pane">
+        <!-- Hidden/Subtle controls for selecting member -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem; gap: 0.5rem; align-items: center;">
+            <div class="select-wrapper">
+              <select id="scorecard-member-select" onchange="onScorecardMemberChange()" style="min-width: 180px; padding: 6px 12px; border-radius: 6px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); font-size: 0.85rem;">
+              </select>
+            </div>
+            <div id="squad-search-box" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0 10px; height: 34px;">
+              <span style="font-size: 0.9rem; color: var(--text-secondary);">🔍</span>
+              <input id="squad-search-input" type="text" placeholder="番号/氏名で検索" autocomplete="off" style="background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 0.85rem; width: 120px;" oninput="onSquadSearchInput(this.value)" onkeydown="if(event.key==='Enter') onSquadSearchSubmit()">
+            </div>
+        </div>
+        <div id="squad-search-result-bar" style="display:none; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding: 8px 12px; background: rgba(129,140,248,0.08); border: 1px solid rgba(129,140,248,0.25); border-radius: 6px;">
+          <span style="color: var(--accent-indigo); font-size: 0.9rem;">👤</span>
+          <span id="squad-search-result-text" style="font-size: 0.85rem; color: var(--text-primary); flex: 1;"></span>
+          <button onclick="clearSquadSearch()" style="background: none; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; color: var(--text-secondary); padding: 2px 8px; font-size: 0.75rem; cursor: pointer;">✕ クリア</button>
+        </div>
+
+        <!-- New Layout based on the mockup -->
+        <div class="scorecard-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3rem;">
+          <div>
+            <h1 style="font-size: 3rem; font-weight: 800; margin-bottom: 1rem; font-family: var(--font-header);">
+              <span id="sc-user-name" style="margin-right: 1rem; color: var(--text-primary);">名前</span> <span style="font-size: 2.2rem; color: var(--text-secondary);">(<span id="sc-user-id">背番号</span>)</span>
+            </h1>
+            <p style="font-size: 1.8rem; color: var(--text-primary); font-weight: 500;">契り： <span id="sc-user-chigiri" style="font-weight: normal; color: var(--accent-amber);">最高の結果を出す。</span></p>
+          </div>
+          <div class="scorecard-badge" style="width: 150px; height: 150px; background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(129, 140, 248, 0.2)); border: 2px solid rgba(56, 189, 248, 0.4); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #e8eaff; box-shadow: 0 4px 25px rgba(56, 189, 248, 0.25);">
+            <div style="font-size: 1.1rem; margin-bottom: 0.2rem; font-weight: 600; color: #bae6fd;">総合評価</div>
+            <div id="sc-total-score" style="font-size: 3.2rem; font-weight: 800; font-family: var(--font-header); text-shadow: 0 2px 10px rgba(56, 189, 248, 0.5);">0.0</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 3rem; margin-bottom: 3rem;">
+          <!-- Sidebar sub-menu -->
+          <div style="width: 220px; display: flex; flex-direction: column; gap: 1.5rem; padding-top: 1rem;">
+            <button class="sc-submenu-btn active" onclick="switchScorecardSubtab('radar')" id="sc-nav-radar" style="text-align: left; background: none; border: none; border-bottom: 4px solid #38bdf8; font-size: 1.4rem; font-weight: bold; padding: 0.5rem 0; cursor: pointer; color: var(--text-primary); transition: all 0.2s;">レーダーチャート</button>
+            <button class="sc-submenu-btn" onclick="switchScorecardSubtab('dist')" id="sc-nav-dist" style="text-align: left; background: none; border: none; border-bottom: 4px solid rgba(255,255,255,0.1); font-size: 1.4rem; font-weight: bold; padding: 0.5rem 0; cursor: pointer; color: var(--text-secondary); transition: all 0.2s;">スコア分布</button>
+            <button class="sc-submenu-btn" onclick="switchScorecardSubtab('trend')" id="sc-nav-trend" style="text-align: left; background: none; border: none; border-bottom: 4px solid rgba(255,255,255,0.1); font-size: 1.4rem; font-weight: bold; padding: 0.5rem 0; cursor: pointer; color: var(--text-secondary); transition: all 0.2s;">推移</button>
+          </div>
+          
+          <!-- Main chart area -->
+          <div style="flex: 1; height: 450px; display: flex; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; padding: 20px; box-shadow: inset 0 0 40px rgba(0,0,0,0.5);">
+            <div id="sc-content-radar" class="sc-content-pane active" style="width: 100%; height: 100%; position: relative;">
+               <canvas id="scChartRadar"></canvas>
+            </div>
+            <div id="sc-content-dist" class="sc-content-pane" style="display: none; width: 100%; height: 100%; position: relative;">
+               <!-- Topic selector for distribution chart -->
+               <div style="position: absolute; top: 0; right: 0; z-index: 10; background: rgba(15,23,42,0.8); padding: 5px; border-radius: 8px;">
+                 <select id="sc-dist-topic-select" onchange="onScorecardDistTopicChange()" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text-primary); padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; outline: none; cursor: pointer;">
+                    <option value="総合">総合スコア</option>
+                    <option value="協調性">協調性</option>
+                    <option value="素直さ">素直さ</option>
+                    <option value="積極性">積極性</option>
+                    <option value="明るさ">明るさ</option>
+                    <option value="礼儀正しさ">礼儀正しさ</option>
+                    <option value="清潔さ">清潔さ</option>
+                    <option value="正確さ">正確さ</option>
+                    <option value="懸命さ">懸命さ</option>
+                    <option value="柔軟性">柔軟性</option>
+                    <option value="ホスピタリティー">ホスピタリティー</option>
+                 </select>
+               </div>
+               <canvas id="scChartDist"></canvas>
+            </div>
+            <div id="sc-content-trend" class="sc-content-pane" style="display: none; width: 100%; height: 100%; position: relative;">
+               <canvas id="scChartTrend"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Details section -->
+        <div style="background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 2rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+          <h2 style="color: var(--accent-cyan); font-size: 1.8rem; font-weight: 800; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;"><span style="font-size: 1.5rem;">✨</span> 評価詳細</h2>
+          <div style="background: rgba(15, 23, 42, 0.6); border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);">
+            <table style="width: 100%; border-collapse: collapse; color: var(--text-primary);">
+              <thead>
+                <tr style="background: rgba(255,255,255,0.03);">
+                  <th style="padding: 16px 24px; text-align: left; font-weight: 700; width: 40%; border-bottom: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05); font-size: 1.05rem; color: var(--text-secondary);">評価項目</th>
+                  <th style="padding: 16px 24px; text-align: left; font-weight: 700; width: 30%; border-bottom: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05); font-size: 1.05rem; color: var(--text-secondary);">あなたの評価</th>
+                  <th style="padding: 16px 24px; text-align: left; font-weight: 700; width: 30%; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 1.05rem; color: var(--text-secondary);">平均との差</th>
+                </tr>
+              </thead>
+              <tbody id="sc-details-tbody" style="background: transparent;">
+                <!-- Javascript will populate this -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 3: ENTIRE RESULT ================= -->
+      <section id="tab-entire-result" class="tab-pane">
+        <!-- React component for entire result will mount here -->
+        <div id="entire-result-root"></div>
+      </section>
+
+      <!-- ================= TAB 4: BY ITEMS ================= -->
+      <section id="tab-by-items" class="tab-pane">
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <h3 class="card-title" style="margin-bottom: 1rem;">🔍 分析する項目を選択</h3>
+          <div class="dimensions-selector-grid" id="dim-selector-grid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+        
+        <div class="header-card" style="background-color: #1e293b; border-radius: 16px; border: 1px solid #334155; padding: 32px; border-left: 6px solid #38bdf8; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2); margin-bottom: 1.5rem;">
+            <span class="item-badge" id="itemBadge" style="display: inline-block; background-color: rgba(56, 189, 248, 0.1); color: #38bdf8; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 12px; border: 1px solid rgba(56, 189, 248, 0.3);">GROW10 - 指針</span>
+            <h1 class="item-title" id="itemTitle" style="font-size: 28px; font-weight: 700; margin-bottom: 12px; color: #38bdf8;">項目名</h1>
+            <p class="item-description" id="itemDescription" style="font-size: 15px; color: #f8fafc; line-height: 1.6;">説明文</p>
+        </div>
+
+        <div class="stats-row" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-bottom: 1.5rem;">
+            <div class="stat-card" style="background-color: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 24px; display: flex; align-items: center; gap: 20px;">
+                <div class="stat-icon" style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background-color: rgba(56, 189, 248, 0.1); color: #38bdf8;">📊</div>
+                <div class="stat-info" style="display: flex; flex-direction: column;">
+                    <span class="stat-label" style="font-size: 14px; color: #94a3b8; margin-bottom: 4px;">組織内平均点 (10点満点)</span>
+                    <div class="stat-value" id="statAverage" style="font-size: 32px; font-weight: bold; color: #f8fafc;">0.0 <span style="font-size: 16px; color: #94a3b8; font-weight: normal;">/ 10.0</span></div>
+                </div>
+            </div>
+            <div class="stat-card" style="background-color: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 24px; display: flex; align-items: center; gap: 20px;">
+                <div class="stat-icon avg" style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background-color: rgba(52, 211, 153, 0.1); color: #34d399;">👥</div>
+                <div class="stat-info" style="display: flex; flex-direction: column;">
+                    <span class="stat-label" style="font-size: 14px; color: #94a3b8; margin-bottom: 4px;">評価対象人数</span>
+                    <div class="stat-value" id="statTotalUsers" style="font-size: 32px; font-weight: bold; color: #f8fafc;">0 <span style="font-size: 16px; color: #94a3b8; font-weight: normal;">人</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid" style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px;">
+            <div class="card" style="background-color: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 28px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);">
+                <h2 class="card-title" style="font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: #38bdf8;">📊 点数別 度数分布（人数）</h2>
+                <div class="chart-container" style="position: relative; height: 320px; width: 100%;"><canvas id="growChart"></canvas></div>
+            </div>
+            <div class="card" style="background-color: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 28px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);">
+                <h2 class="card-title" style="font-size: 18px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: #fbbf24;">🏆 上位5名 ランキング</h2>
+                <table class="ranking-table" style="width: 100%; border-collapse: collapse;">
+                    <thead><tr><th style="text-align: left; padding: 12px; font-size: 13px; color: #94a3b8; border-bottom: 1px solid #334155; width: 60px;">順位</th><th style="text-align: left; padding: 12px; font-size: 13px; color: #94a3b8; border-bottom: 1px solid #334155;">氏名</th><th style="text-align: right; padding: 12px; font-size: 13px; color: #94a3b8; border-bottom: 1px solid #334155;">点数</th></tr></thead>
+                    <tbody id="rankingBody"></tbody>
+                </table>
+            </div>
+        </div>
+      </section>
+
+      <!-- ================= TAB 5: SCORING (成績をつける) ================= -->
+      <section id="tab-scoring" class="tab-pane">
+        <div class="grid-dashboard">
+          <!-- Left: Form -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="card">
+              <h2 class="card-title">📝 評価・フィードバックを入力</h2>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+                メンバーの活躍を評価し、ポジティブなフィードバックを送りましょう。
+              </p>
+              
+              <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="flex: 1;">
+                  <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">評価者 (あなた)</label>
+                  <div class="select-wrapper">
+                    <select id="scoring-evaluator-select" disabled></select>
+                  </div>
+                </div>
+                <div style="flex: 1;">
+                  <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">評価対象者</label>
+                  <div class="select-wrapper">
+                    <select id="scoring-evaluatee-select"></select>
+                  </div>
+                </div>
+                <div style="flex: 1;">
+                  <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">対象月</label>
+                  <div class="select-wrapper">
+                    <select id="scoring-month-select"></select>
+                  </div>
+                </div>
+              </div>
+
+              <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 1.5rem 0;">
+
+              <div id="scoring-sliders" style="display: flex; flex-direction: column; gap: 1rem;">
+                <!-- JS will populate sliders here -->
+              </div>
+
+              <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 1.5rem 0;">
+
+              <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">具体的なコメント・アドバイス</label>
+              <textarea id="scoring-comment" class="goal-input-area" style="min-height: 100px; margin-bottom: 1.5rem;" placeholder="具体的な行動や感謝の気持ちを伝えると、相手の励みになります！"></textarea>
+
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">
+                  入力平均: <span id="scoring-preview-avg" style="color: var(--accent-indigo); font-size: 1.5rem; margin-left: 8px;">5.0</span>
+                </div>
+                <button class="btn-primary" style="padding: 12px 32px; font-size: 1.1rem;" onclick="submitScore()">🚀 評価を送信する</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: History -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="card">
+              <h2 class="card-title">📬 最近送信された評価</h2>
+              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+                直近で記録されたメンバー間のフィードバック履歴です。
+              </p>
+              <div class="feedback-list" id="submitted-list" style="max-height: 600px; overflow-y: auto;">
+                <!-- JS will populate -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- 1. All Comments Modal -->
+  <div id="comments-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'comments-modal')">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">💬 届いたフィードバック一覧</h3>
+        <button class="close-btn" onclick="closeModal('comments-modal')">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-feedback-container"></div>
+    </div>
+  </div>
+
+  <!-- 2. User Switcher Modal (Login Simulation) -->
+  <div id="user-switcher-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'user-switcher-modal')">
+    <div class="modal-content" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🔄 ユーザー切り替え / ログイン</h3>
+        <button id="user-switcher-close-btn" class="close-btn" onclick="closeModal('user-switcher-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          背番号を入力してください。
+        </p>
+        <div style="margin-bottom: 1.5rem;">
+          <input type="text" id="login-user-input" class="goal-input-area" placeholder="例: 10" style="min-height: 48px; width: 100%; padding: 10px 14px; border-radius: 8px;" onkeydown="if(event.key==='Enter') switchUser()">
+        </div>
+        <button id="login-btn-submit" class="btn-primary" style="width: 100%; justify-content: center;" onclick="switchUser()">このユーザーでログイン</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. GROW Reflection Modal -->
+  <div id="grow-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'grow-modal')">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🌱 GROW振り返り (今月の目標)</h3>
+        <button class="close-btn" onclick="closeModal('grow-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+          <strong>G (Goal) / R (Reality) / O (Options) / W (Will)</strong> に沿って振り返りましょう。
+        </p>
+        <div style="margin-bottom: 1rem;">
+          <label class="scoring-dim-label" style="display:block; margin-bottom: 8px;">1. できたこと・現状 (Reality)</label>
+          <textarea id="grow-reality" class="goal-input-area" placeholder="今月達成できたことや、現在の状況を書いてください"></textarea>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <label class="scoring-dim-label" style="display:block; margin-bottom: 8px;">2. 課題・選択肢 (Options)</label>
+          <textarea id="grow-options" class="goal-input-area" placeholder="うまくいかなかった点や、それを解決するためのアイデアを書いてください"></textarea>
+        </div>
+        <div style="margin-bottom: 1.5rem;">
+          <label class="scoring-dim-label" style="display:block; margin-bottom: 8px;">3. 次へのアクション (Will)</label>
+          <textarea id="grow-will" class="goal-input-area" placeholder="来月に向けて、具体的に何から始めますか？"></textarea>
+        </div>
+        <button class="btn-primary" style="width: 100%;" onclick="saveGrowReflection()">振り返りを保存してスコア入力へ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Duolingo-style 'Chigiri' Annoying Modal -->
+  <div id="chigiri-modal" class="modal-overlay chigiri-overlay">
+    <div class="chigiri-modal-content">
+      <div class="chigiri-mascot">🦉</div>
+      <h2 class="chigiri-title">おい、待てよ！</h2>
+      <p class="chigiri-desc">
+        ダッシュボードを見る前に、今日の<strong style="color:var(--accent-amber);">「契り（Chigiri）」</strong>を立てろ！<br>
+        成長の機会を逃すな！
+      </p>
+      <input type="text" id="chigiri-input" class="chigiri-input" placeholder="例: 今日は絶対に発言する！" autocomplete="off">
+      <button class="chigiri-btn" onclick="submitChigiri()">契りを立てて進む 🔥</button>
+      
+      <!-- Hidden close button for user sanity if requested, but kept low visibility -->
+      <button class="chigiri-skip-btn" onclick="skipChigiri()">今はやめておく... (連続記録が途切れます)</button>
+    </div>
+  </div>
+
+  <!-- Global Toast Alert -->
+  <div id="toast" class="toast">目標が保存されました！</div>
+
+  <!-- GAS API 連携とグローバルステート管理 -->
+  <script src="data-bridge.js"></script>
+  <!-- Main scripts -->
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  
+  <!-- React Component (entire-result) -->
+  <script type="text/babel">
+    const { useMemo, useState, useEffect } = React;
+
+    const topics = [
+      '協調性', '素直さ', '積極性', '明るさ', '礼儀正しさ', 
+      '清潔さ', '正確さ', '懸命さ', '柔軟性', 'ホスピタリティー'
+    ];
+    const allColumns = ['総合', ...topics];
+
+    function computeRanksAndFlags(resultList, columns) {
+      columns.forEach(col => {
+        const sortedDesc = [...resultList].sort((a, b) => b.avgScores[col] - a.avgScores[col]);
+        let currentRank = 1, prevScore = null;
+        sortedDesc.forEach((emp, idx) => {
+          if (emp.avgScores[col] !== prevScore) currentRank = idx + 1;
+          const target = resultList.find(e => e.empId === emp.empId);
+          target.ranks[col] = currentRank;
+          target.flags[col] = { isTop1: currentRank === 1, isTop3: currentRank > 1 && currentRank <= 3, isBottom3: false };
+          prevScore = emp.avgScores[col];
+        });
+
+        const sortedAsc = [...resultList].sort((a, b) => a.avgScores[col] - b.avgScores[col]);
+        let bottomRank = 1, bottomPrev = null;
+        sortedAsc.forEach((emp, idx) => {
+          if (emp.avgScores[col] !== bottomPrev) bottomRank = idx + 1;
+          const target = resultList.find(e => e.empId === emp.empId);
+          // 3.0未満の場合にフラグを立てる
+          if (emp.avgScores[col] < 3.0) {
+            target.flags[col].isLowScore = true;
+          } else {
+            target.flags[col].isLowScore = false;
+          }
+          bottomPrev = emp.avgScores[col];
+        });
+      });
+    }
+
+    const DashboardGrid = () => {
+      const [apiData, setApiData] = useState(window.globalApiData || null);
+      const [isLoading, setIsLoading] = useState(!window.globalApiData);
+      const [error, setError] = useState(null);
+      const [selectedDeptId, setSelectedDeptId] = useState(null);
+
+      useEffect(() => {
+        // すでにデータがロードされていればセットする
+        if (window.globalApiData) {
+            setApiData(window.globalApiData);
+            setIsLoading(false);
+        }
+
+        const handleDataLoaded = (e) => {
+            setApiData(e.detail);
+            setIsLoading(false);
+        };
+        const handleDataError = (e) => {
+            setError(`データの取得に失敗しました。\n詳細: ${e.detail.message || e.detail}`);
+            setIsLoading(false);
+        };
+
+        document.addEventListener('gasDataLoaded', handleDataLoaded);
+        document.addEventListener('gasDataError', handleDataError);
+
+        return () => {
+            document.removeEventListener('gasDataLoaded', handleDataLoaded);
+            document.removeEventListener('gasDataError', handleDataError);
+        };
+      }, []);
+
+      const { processedData, featuredDepts, activeDeptName } = useMemo(() => {
+        if (!apiData) return { processedData: [], featuredDepts: [], activeDeptName: '' };
+        const { evaluations = [], members = [], featuredDepartments = [] } = apiData;
+        const featuredDepts = featuredDepartments;
+
+        const memberMap = {};
+        members.forEach(m => {
+          const sq = String(m.squadNumber).trim();
+          if (!sq) return;
+          memberMap[sq] = { name: m.name || sq, departmentIds: String(m.departmentIds || '').split(',').map(d => d.trim()).filter(d => d !== '') };
+        });
+
+        let targetMemberIds = null;
+        let activeDeptName = '';
+        if (selectedDeptId !== null) {
+          const deptInfo = featuredDepts.find(d => d.id === selectedDeptId);
+          activeDeptName = deptInfo ? deptInfo.name : selectedDeptId;
+          targetMemberIds = new Set();
+          Object.entries(memberMap).forEach(([sq, info]) => {
+            if (info.departmentIds.includes(selectedDeptId)) targetMemberIds.add(sq);
+          });
+        }
+
+        const aggregated = {};
+        evaluations.forEach(row => {
+          const empId = String(row.Evaluatee_ID || '').trim();
+          if (!empId) return;
+          if (targetMemberIds && !targetMemberIds.has(empId)) return;
+
+          if (!aggregated[empId]) {
+            const memberInfo = memberMap[empId];
+            aggregated[empId] = { empId, name: memberInfo ? memberInfo.name : `背番号: ${empId}`, count: 0, scores: {} };
+            topics.forEach(t => { aggregated[empId].scores[t] = 0; });
+          }
+          aggregated[empId].count += 1;
+          topics.forEach(t => { aggregated[empId].scores[t] += (Number(row[t]) || 0); });
+        });
+
+        const resultList = Object.values(aggregated).map(emp => {
+          const avgScores = {};
+          let totalSum = 0;
+          topics.forEach(t => {
+            const avg = Number((emp.scores[t] / emp.count).toFixed(2));
+            avgScores[t] = avg;
+            totalSum += avg;
+          });
+          avgScores['総合'] = Number((totalSum / topics.length).toFixed(2));
+          return { empId: emp.empId, name: emp.name, avgScores, ranks: {}, flags: {} };
+        });
+
+        computeRanksAndFlags(resultList, allColumns);
+        const sorted = resultList.sort((a, b) => {
+          const numA = parseInt(a.empId, 10);
+          const numB = parseInt(b.empId, 10);
+          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+          return a.empId.localeCompare(b.empId);
+        });
+        return { processedData: sorted, featuredDepts, activeDeptName };
+      }, [apiData, selectedDeptId]);
+
+      function getCellStyle(flags) {
+        const base = "px-3 py-3 border-r border-slate-800/50 text-center transition-colors duration-200 ";
+        if (flags.isTop1) return base + "bg-cyan-900/30 text-cyan-300 font-bold shadow-[inset_0_0_12px_rgba(34,211,238,0.2)] ";
+        if (flags.isTop3) return base + "bg-blue-900/20 text-blue-300 font-bold ";
+        if (flags.isLowScore) return base + "bg-red-950/40 text-red-400/90 font-medium ";
+        return base + "text-slate-300 ";
+      }
+
+      function getRankStyle(flags) {
+        const base = "px-3 py-3 border-r border-slate-800/50 text-center transition-colors duration-200 ";
+        if (flags.isTop1) return base + "bg-cyan-900/30 text-cyan-300 font-bold shadow-[inset_0_0_12px_rgba(34,211,238,0.2)] ";
+        if (flags.isTop3) return base + "bg-blue-900/20 text-blue-300 font-bold ";
+        if (flags.isLowScore) return base + "bg-red-950/40 text-red-400/90 font-medium ";
+        return base + "text-slate-500 ";
+      }
+
+      if (isLoading) return <div className="text-center p-10"><p className="text-cyan-400">GAS Web Apps からデータを読み込み中...</p></div>;
+      if (error) return <div className="text-center p-10"><p className="text-red-400">{error}</p></div>;
+      if (processedData.length === 0) return <div className="text-center p-10"><p className="text-slate-400">データがありません。</p></div>;
+
+      return (
+        <div className="w-full max-w-full font-sans overflow-hidden">
+          {featuredDepts.length > 0 && (
+            <div className="mb-5 max-w-[95vw] mx-auto">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button onClick={() => setSelectedDeptId(null)} className={selectedDeptId === null ? "px-4 py-1.5 rounded-full text-sm font-semibold border transition-all duration-200 bg-cyan-500/20 border-cyan-400/60 text-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.25)]" : "px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 bg-slate-800/60 border-slate-600/40 text-slate-400 hover:border-slate-500/60 hover:text-slate-300"}>全員</button>
+                {featuredDepts.map(dept => (
+                  <button key={dept.id} onClick={() => setSelectedDeptId(dept.id)} className={selectedDeptId === dept.id ? "px-4 py-1.5 rounded-full text-sm font-semibold border transition-all duration-200 bg-blue-500/20 border-blue-400/60 text-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.25)]" : "px-4 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 bg-slate-800/60 border-slate-600/40 text-slate-400 hover:border-slate-500/60 hover:text-slate-300"}>{dept.name}</button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="mb-4 flex items-center space-x-6 w-full text-xs text-slate-400">
+            <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-cyan-900/40 border border-cyan-600/30"></span>1位</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-blue-900/40 border border-blue-600/30"></span>上位3位</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded bg-red-950/60 border border-red-600/30"></span>3.0未満</span>
+          </div>
+          <div className="w-full overflow-x-auto overflow-y-auto max-h-[75vh] border border-slate-800/80 rounded-xl shadow-2xl bg-slate-900/50 backdrop-blur-md relative scroll-smooth ring-1 ring-white/5">
+            <table className="min-w-max w-full border-collapse text-sm text-slate-200">
+              <thead className="sticky top-0 z-40">
+                <tr>
+                  <th rowSpan={2} className="px-5 py-4 border-b border-r border-slate-700/50 bg-slate-900/95 backdrop-blur text-blue-300 sticky left-0 z-50 w-20 min-w-[5rem] align-middle font-semibold uppercase tracking-wider text-xs">ID</th>
+                  <th rowSpan={2} className="px-5 py-4 border-b border-r border-slate-700/50 bg-slate-900/95 backdrop-blur text-blue-300 sticky left-20 z-50 w-36 min-w-[9rem] align-middle font-semibold uppercase tracking-wider text-xs shadow-[4px_0_15px_-5px_rgba(0,0,0,0.6)]">Name</th>
+                  <th colSpan={2} className="px-4 py-3 border-b border-r-2 border-slate-600/80 bg-gradient-to-b from-blue-900/60 to-slate-900/95 backdrop-blur text-cyan-200 text-center whitespace-nowrap font-bold tracking-wide text-base">★ 総合</th>
+                  {topics.map(topic => <th key={topic} colSpan={2} className="px-4 py-3 border-b border-r border-slate-700/50 bg-slate-900/95 backdrop-blur text-slate-200 text-center whitespace-nowrap font-medium tracking-wide">{topic}</th>)}
+                </tr>
+                <tr>
+                  <th className="px-3 py-2 border-b border-r border-slate-600/80 bg-blue-950/70 backdrop-blur text-cyan-300/80 text-center font-normal text-xs whitespace-nowrap">評価</th>
+                  <th className="px-3 py-2 border-b border-r-2 border-slate-600/80 bg-blue-950/70 backdrop-blur text-cyan-300/80 text-center font-normal text-xs whitespace-nowrap">順位</th>
+                  {topics.map(topic => (
+                    <React.Fragment key={`${topic}-sub`}>
+                      <th className="px-3 py-2 border-b border-r border-slate-700/50 bg-slate-800/90 backdrop-blur text-slate-400 text-center font-normal text-xs whitespace-nowrap">評価</th>
+                      <th className="px-3 py-2 border-b border-r border-slate-700/50 bg-slate-800/90 backdrop-blur text-slate-400 text-center font-normal text-xs whitespace-nowrap">順位</th>
+                    </React.Fragment>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="bg-transparent">
+                {processedData.map((row) => (
+                  <tr key={row.empId} className="hover:bg-slate-800/70 border-b border-slate-800/50 transition-all duration-200 group">
+                    <td className="px-5 py-3 border-r border-slate-800/50 sticky left-0 z-20 bg-slate-900 group-hover:bg-slate-800/90 font-mono text-slate-400 font-medium transition-colors">{row.empId}</td>
+                    <td className="px-5 py-3 border-r border-slate-800/50 sticky left-20 z-20 bg-slate-900 group-hover:bg-slate-800/90 font-bold text-slate-200 shadow-[4px_0_15px_-5px_rgba(0,0,0,0.6)] transition-colors">{row.name}</td>
+                    <td className={getCellStyle(row.flags['総合']).replace('border-r border-slate-800/50', 'border-r border-slate-700/60') + " bg-slate-800/30 "}>{row.avgScores['総合'].toFixed(2)}</td>
+                    <td className={getRankStyle(row.flags['総合']).replace('border-r border-slate-800/50', 'border-r-2 border-slate-600/80') + " bg-slate-800/30 "}>{row.ranks['総合']}位</td>
+                    {topics.map(topic => (
+                      <React.Fragment key={topic}>
+                        <td className={getCellStyle(row.flags[topic])}>{row.avgScores[topic].toFixed(2)}</td>
+                        <td className={getRankStyle(row.flags[topic])}>{row.ranks[topic]}位</td>
+                      </React.Fragment>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('entire-result-root'));
+    root.render(<DashboardGrid />);
+  </script>
+</body>
+</html>
