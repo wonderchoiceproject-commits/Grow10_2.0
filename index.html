@@ -67,10 +67,10 @@
           <span>🏆</span> 項目ごと集計
         </button>
       </li>
-      <!-- ADDED TAB 5: SCORING -->
-      <li class="nav-item" id="nav-scoring">
-        <button onclick="switchTab('scoring')">
-          <span>✍️</span> 成績をつける
+      <!-- ADDED TAB 6: VOTING -->
+      <li class="nav-item" id="nav-voting">
+        <button onclick="switchTab('voting')" id="btn-voting">
+          <span>🗳️</span> 評価を送信
         </button>
       </li>
     </ul>
@@ -112,10 +112,10 @@
             <div class="banner-icon" style="font-size: 2.5rem;">🔥</div>
             <div class="banner-content">
               <div class="banner-title" style="color: var(--accent-indigo);">団体目標</div>
-              <div class="banner-text" style="font-size: 1.25rem; margin-bottom: 10px; color: var(--text-primary);">「協調性」の全体平均を3.5以上にする</div>
+              <div class="banner-text" id="overall-goal-title" style="font-size: 1.25rem; margin-bottom: 10px; color: var(--text-primary);">「協調性」の全体平均を3.5以上にする</div>
               <div style="font-size: 0.9rem; color: var(--text-secondary); background: rgba(0,0,0,0.3); padding: 10px 14px; border-radius: 6px; border-left: 3px solid var(--accent-indigo); line-height: 1.5;">
                 <strong>目標の理由:</strong><br>
-                先月のアンケートで「チーム間の連携不足」が課題として浮き彫りになったため。全員でコミュニケーションを増やし、助け合う風土を作ります。
+                <span id="overall-goal-reason">先月のアンケートで「チーム間の連携不足」が課題として浮き彫りになったため。全員でコミュニケーションを増やし、助け合う風土を作ります。</span>
               </div>
             </div>
           </div>
@@ -123,13 +123,35 @@
           <!-- Personal Goal -->
           <div class="overall-goal-banner personal-goal">
             <div class="banner-icon" style="font-size: 2.5rem;">🎯</div>
-            <div class="banner-content">
-              <div class="banner-title" style="color: var(--accent-emerald);">個人目標</div>
-              <div class="banner-text" style="font-size: 1.25rem; margin-bottom: 10px; color: var(--text-primary);">「積極性」の評価スコアを向上させる</div>
-              <div style="font-size: 0.9rem; color: var(--text-secondary); background: rgba(0,0,0,0.3); padding: 10px 14px; border-radius: 6px; border-left: 3px solid var(--accent-emerald); line-height: 1.5;">
-                <strong>目標の理由:</strong><br>
-                今まで受け身になりがちだったので、今月は会議での発言回数を増やし、自分からプロジェクトの改善案を提案できるようにするため。
+            <div class="banner-content" style="width: 100%;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="banner-title" style="color: var(--accent-emerald);">個人目標</div>
+                <button class="btn-secondary" style="padding: 4px 12px; font-size: 0.8rem;" onclick="togglePersonalGoalEdit()">✎ 編集</button>
               </div>
+              
+              <!-- Display Mode -->
+              <div id="personal-goal-display">
+                <div class="banner-text" id="display-goal-items" style="font-size: 1.1rem; margin-bottom: 5px; color: var(--accent-emerald);"></div>
+                <div class="banner-text" id="display-goal-text" style="font-size: 1.25rem; margin-bottom: 10px; color: var(--text-primary);">目標が設定されていません。</div>
+              </div>
+
+              <!-- Edit Mode -->
+              <div id="personal-goal-edit" style="display: none; margin-top: 10px;">
+                <div id="monthly-goal-items-container" style="margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 8px;">
+                  <!-- JS will populate checkboxes here -->
+                </div>
+                <textarea id="monthly-goal-text" class="goal-input-area" placeholder="今月取り組む目標を入力してください..."></textarea>
+                <div class="progress-container">
+                  <span class="progress-label">現在の自己達成度:</span>
+                  <input type="range" id="goal-progress-slider" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)">
+                  <span class="progress-label" id="progress-val">0%</span>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                  <button class="btn-primary" style="flex: 1;" onclick="saveMonthlyGoal()">💾 目標を保存</button>
+                  <button class="btn-secondary" style="flex: 1;" onclick="openGrowModal()">🌱 振り返る(GROW)</button>
+                </div>
+              </div>
+
             </div>
           </div>
 
@@ -153,27 +175,9 @@
               </button>
             </div>
 
-            <!-- Monthly Goal & GROW Reflection Card -->
-            <div class="card">
-              <h2 class="card-title">🎯 今月の個人目標とGROW振り返り</h2>
-              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
-                目標を設定し、定期的に振り返り(GROWモデル)を行いましょう。
-              </p>
-              <textarea id="monthly-goal-text" class="goal-input-area" placeholder="今月取り組む目標を入力してください..."></textarea>
-              
-              <div class="progress-container">
-                <span class="progress-label">現在の自己達成度:</span>
-                <input type="range" id="goal-progress-slider" min="0" max="100" value="0" oninput="updateProgressLabel(this.value)">
-                <span class="progress-label" id="progress-val">0%</span>
-              </div>
-              
-              <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-                <button class="btn-primary" style="flex: 1;" onclick="saveMonthlyGoal()">💾 目標を保存</button>
-                <button class="btn-secondary" style="flex: 1;" onclick="openGrowModal()">🌱 振り返る(GROW)</button>
-              </div>
             </div>
+            
           </div>
-
           <!-- Right Column -->
           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
             <!-- サマリーカードは削除されました -->
@@ -333,70 +337,12 @@
         </div>
       </section>
 
-      <!-- ================= TAB 5: SCORING (成績をつける) ================= -->
-      <section id="tab-scoring" class="tab-pane">
-        <div class="grid-dashboard">
-          <!-- Left: Form -->
-          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-            <div class="card">
-              <h2 class="card-title">📝 評価・フィードバックを入力</h2>
-              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
-                メンバーの活躍を評価し、ポジティブなフィードバックを送りましょう。
-              </p>
-              
-              <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-                <div style="flex: 1;">
-                  <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">評価者 (あなた)</label>
-                  <div class="select-wrapper">
-                    <select id="scoring-evaluator-select" disabled></select>
-                  </div>
-                </div>
-                <div style="flex: 1;">
-                  <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">評価対象者</label>
-                  <div class="select-wrapper">
-                    <select id="scoring-evaluatee-select"></select>
-                  </div>
-                </div>
-                <div style="flex: 1;">
-                  <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">対象月</label>
-                  <div class="select-wrapper">
-                    <select id="scoring-month-select"></select>
-                  </div>
-                </div>
-              </div>
 
-              <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 1.5rem 0;">
 
-              <div id="scoring-sliders" style="display: flex; flex-direction: column; gap: 1rem;">
-                <!-- JS will populate sliders here -->
-              </div>
-
-              <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 1.5rem 0;">
-
-              <label class="scoring-dim-label" style="display: block; margin-bottom: 8px;">具体的なコメント・アドバイス</label>
-              <textarea id="scoring-comment" class="goal-input-area" style="min-height: 100px; margin-bottom: 1.5rem;" placeholder="具体的な行動や感謝の気持ちを伝えると、相手の励みになります！"></textarea>
-
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">
-                  入力平均: <span id="scoring-preview-avg" style="color: var(--accent-indigo); font-size: 1.5rem; margin-left: 8px;">5.0</span>
-                </div>
-                <button class="btn-primary" style="padding: 12px 32px; font-size: 1.1rem;" onclick="submitScore()">🚀 評価を送信する</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Right: History -->
-          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-            <div class="card">
-              <h2 class="card-title">📬 最近送信された評価</h2>
-              <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
-                直近で記録されたメンバー間のフィードバック履歴です。
-              </p>
-              <div class="feedback-list" id="submitted-list" style="max-height: 600px; overflow-y: auto;">
-                <!-- JS will populate -->
-              </div>
-            </div>
-          </div>
+      <!-- ================= TAB 6: VOTING (投票) ================= -->
+      <section id="tab-voting" class="tab-pane">
+        <div class="card" style="padding: 0; overflow: hidden; height: calc(100vh - 160px);">
+          <iframe src="Grow10/index.html" style="width: 100%; height: 100%; border: none;"></iframe>
         </div>
       </section>
 
@@ -532,6 +478,17 @@
       const [isLoading, setIsLoading] = useState(!window.globalApiData);
       const [error, setError] = useState(null);
       const [selectedDeptId, setSelectedDeptId] = useState(null);
+      const [sortConfig, setSortConfig] = useState({ key: null, direction: 'desc' });
+
+      const requestSort = (key) => {
+        let direction = 'desc'; // Default to desc (higher score/rank 1 first)
+        if (sortConfig.key === key && sortConfig.direction === 'desc') {
+          direction = 'asc';
+        } else if (sortConfig.key === key && sortConfig.direction === 'asc') {
+          key = null;
+        }
+        setSortConfig({ key, direction });
+      };
 
       useEffect(() => {
         // すでにデータがロードされていればセットする
@@ -609,14 +566,34 @@
         });
 
         computeRanksAndFlags(resultList, allColumns);
-        const sorted = resultList.sort((a, b) => {
-          const numA = parseInt(a.empId, 10);
-          const numB = parseInt(b.empId, 10);
-          if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-          return a.empId.localeCompare(b.empId);
-        });
-        return { processedData: sorted, featuredDepts, activeDeptName };
-      }, [apiData, selectedDeptId]);
+        let finalSorted = [...resultList];
+        
+        if (sortConfig.key) {
+          finalSorted.sort((a, b) => {
+            let aVal, bVal;
+            if (sortConfig.key === 'ID') {
+              aVal = parseInt(a.empId, 10); bVal = parseInt(b.empId, 10);
+              if(isNaN(aVal)) aVal = a.empId; if(isNaN(bVal)) bVal = b.empId;
+            } else if (sortConfig.key === 'Name') {
+              aVal = a.name; bVal = b.name;
+            } else {
+              aVal = a.avgScores[sortConfig.key];
+              bVal = b.avgScores[sortConfig.key];
+            }
+            if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+          });
+        } else {
+          finalSorted.sort((a, b) => {
+            const numA = parseInt(a.empId, 10);
+            const numB = parseInt(b.empId, 10);
+            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+            return a.empId.localeCompare(b.empId);
+          });
+        }
+        return { processedData: finalSorted, featuredDepts, activeDeptName };
+      }, [apiData, selectedDeptId, sortConfig]);
 
       function getCellStyle(flags) {
         const base = "px-3 py-3 border-r border-slate-800/50 text-center transition-colors duration-200 ";
@@ -661,8 +638,20 @@
                 <tr>
                   <th rowSpan={2} className="px-5 py-4 border-b border-r border-slate-700/50 bg-slate-900/95 backdrop-blur text-blue-300 sticky left-0 z-50 w-20 min-w-[5rem] align-middle font-semibold uppercase tracking-wider text-xs">ID</th>
                   <th rowSpan={2} className="px-5 py-4 border-b border-r border-slate-700/50 bg-slate-900/95 backdrop-blur text-blue-300 sticky left-20 z-50 w-36 min-w-[9rem] align-middle font-semibold uppercase tracking-wider text-xs shadow-[4px_0_15px_-5px_rgba(0,0,0,0.6)]">Name</th>
-                  <th colSpan={2} className="px-4 py-3 border-b border-r-2 border-slate-600/80 bg-gradient-to-b from-blue-900/60 to-slate-900/95 backdrop-blur text-cyan-200 text-center whitespace-nowrap font-bold tracking-wide text-base">★ 総合</th>
-                  {topics.map(topic => <th key={topic} colSpan={2} className="px-4 py-3 border-b border-r border-slate-700/50 bg-slate-900/95 backdrop-blur text-slate-200 text-center whitespace-nowrap font-medium tracking-wide">{topic}</th>)}
+                  <th colSpan={2} className="px-4 py-3 border-b border-r-2 border-slate-600/80 bg-gradient-to-b from-blue-900/60 to-slate-900/95 backdrop-blur text-cyan-200 text-center whitespace-nowrap font-bold tracking-wide text-base">
+                    <div className="flex items-center justify-center gap-1">
+                      ★ 総合
+                      <button onClick={() => requestSort('総合')} className="text-slate-400 hover:text-cyan-300 ml-1 focus:outline-none" title="ソート">↕</button>
+                    </div>
+                  </th>
+                  {topics.map(topic => 
+                    <th key={topic} colSpan={2} className="px-4 py-3 border-b border-r border-slate-700/50 bg-slate-900/95 backdrop-blur text-slate-200 text-center whitespace-nowrap font-medium tracking-wide">
+                      <div className="flex items-center justify-center gap-1">
+                        {topic}
+                        <button onClick={() => requestSort(topic)} className="text-slate-400 hover:text-cyan-300 ml-1 focus:outline-none" title="ソート">↕</button>
+                      </div>
+                    </th>
+                  )}
                 </tr>
                 <tr>
                   <th className="px-3 py-2 border-b border-r border-slate-600/80 bg-blue-950/70 backdrop-blur text-cyan-300/80 text-center font-normal text-xs whitespace-nowrap">評価</th>

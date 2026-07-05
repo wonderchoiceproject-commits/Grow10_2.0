@@ -58,7 +58,98 @@ function skipChigiri() {
 }
 
 function submitChigiri() {
-    closeModal('chigiri-modal');
+    const chigiriInput = document.getElementById('chigiri-input').value;
+    if (!chigiriInput.trim()) {
+        closeModal('chigiri-modal');
+        return;
+    }
+    const userStr = sessionStorage.getItem('grow10_current_user');
+    if (!userStr) {
+        closeModal('chigiri-modal');
+        return;
+    }
+    const user = JSON.parse(userStr);
+    
+    updateMemberGoalsAPI({squadNumber: user.id, chigiri: chigiriInput})
+    .then(() => {
+        const chigiriText = document.getElementById('current-chigiri-text');
+        if (chigiriText) chigiriText.innerText = chigiriInput;
+        if (window.globalApiData && window.globalApiData.members) {
+            const m = window.globalApiData.members.find(m => String(m.squadNumber) === String(user.id));
+            if(m) m.chigiri = chigiriInput;
+        }
+        closeModal('chigiri-modal');
+    })
+    .catch(err => alert('契りの保存エラー: ' + err.message));
+}
+
+function saveMonthlyGoal() {
+    const goalText = document.getElementById('monthly-goal-text').value;
+    const userStr = sessionStorage.getItem('grow10_current_user');
+    if (!userStr) return;
+    const user = JSON.parse(userStr);
+    
+    // Collect selected checkboxes
+    const container = document.getElementById('monthly-goal-items-container');
+    const checkboxes = container ? container.querySelectorAll('input[type="checkbox"]:checked') : [];
+    const selectedItems = Array.from(checkboxes).map(cb => cb.value);
+
+    const goalData = JSON.stringify({ items: selectedItems, text: goalText });
+    
+    updateMemberGoalsAPI({squadNumber: user.id, monthlyGoal: goalData})
+    .then(() => {
+        showToast('目標が保存されました！');
+        if (window.globalApiData && window.globalApiData.members) {
+            const m = window.globalApiData.members.find(m => String(m.squadNumber) === String(user.id));
+            if(m) m.monthly_goal = goalData;
+        }
+        
+        // Hide edit mode and update display
+        document.getElementById('personal-goal-edit').style.display = 'none';
+        document.getElementById('personal-goal-display').style.display = 'block';
+        
+        const displayItems = document.getElementById('display-goal-items');
+        const displayText = document.getElementById('display-goal-text');
+        if (displayItems) {
+            displayItems.innerText = selectedItems.length > 0 ? `【${selectedItems.join(', ')}】` : '';
+        }
+        if (displayText) {
+            displayText.innerText = goalText || '目標が設定されていません。';
+        }
+    })
+    .catch(err => alert('目標の保存エラー: ' + err.message));
+}
+
+function togglePersonalGoalEdit() {
+    const editDiv = document.getElementById('personal-goal-edit');
+    const dispDiv = document.getElementById('personal-goal-display');
+    if (editDiv.style.display === 'none') {
+        editDiv.style.display = 'block';
+        dispDiv.style.display = 'none';
+    } else {
+        editDiv.style.display = 'none';
+        dispDiv.style.display = 'block';
+    }
+}
+
+function updateMemberGoalsAPI(data) {
+    return fetch(GAS_WEBAPP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'updateMemberGoals', data: data })
+    }).then(res => res.json()).then(res => {
+        if (res.error) throw new Error(res.error);
+        return res;
+    });
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.innerText = msg;
+        toast.className = "toast show";
+        setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -83,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ====== DATA FETCHING LOGIC ======
 let isDataLoaded = false;
 let pendingLoginUserId = null;
-const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyBKhGV3I7LuBMtHN7dvYFHOrddAChxRKig3rIq-EKYHYZS6bF1x0dHsZZumj9ampk/exec";
+const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzZdYWOzukbkEhjLRds2YEY8B7yQO7InIrKUxznIdUGy9xUtxNMZZ1S45-Sw_Wj0Y3z/exec";
 
 function fetchDashboardData() {
     const fetchUrl = GAS_WEBAPP_URL.includes('?') ? `${GAS_WEBAPP_URL}&action=getDashboardRawData` : `${GAS_WEBAPP_URL}?action=getDashboardRawData`;
@@ -193,9 +284,107 @@ function updateUserProfile() {
             if (avatarEl) {
                 avatarEl.innerText = (displayName !== "Loading..." && displayName !== "不明なユーザー") ? displayName.charAt(0) : '👨‍💻';
             }
+            
+            // Render Dashboard Goals
+            renderDashboardGoals(user);
+            
+            // Set default scorecard user
+            if (window.globalApiData && window.globalApiData.members) {
+                const select = document.getElementById('scorecard-member-select');
+                if (select) {
+                    const options = Array.from(select.options);
+                    if (options.some(opt => String(opt.value) === String(user.id))) {
+                        select.value = user.id;
+                        if (typeof scSelectedUserId !== 'undefined') scSelectedUserId = user.id;
+                        if (typeof renderScorecard === 'function') renderScorecard(user.id);
+                    }
+                }
+            }
         } catch (e) {
             console.error('Failed to parse user data', e);
         }
+    }
+}
+
+function renderDashboardGoals(user) {
+    if (!window.globalApiData || !window.globalApiData.members) return;
+    const member = window.globalApiData.members.find(m => String(m.squadNumber) === String(user.id));
+    
+    // Setup checkboxes if not already done
+    const container = document.getElementById('monthly-goal-items-container');
+    if (container && container.innerHTML.trim() === '' && typeof dimensionMeta !== 'undefined') {
+        const topics = Object.keys(dimensionMeta);
+        topics.forEach(t => {
+            const label = document.createElement('label');
+            label.style.display = 'flex';
+            label.style.alignItems = 'center';
+            label.style.gap = '4px';
+            label.style.fontSize = '0.85rem';
+            label.style.background = 'rgba(255,255,255,0.05)';
+            label.style.padding = '4px 8px';
+            label.style.borderRadius = '4px';
+            label.style.cursor = 'pointer';
+
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = t;
+            cb.onchange = () => {
+                const checked = container.querySelectorAll('input[type="checkbox"]:checked');
+                if (checked.length > 2) {
+                    cb.checked = false;
+                    alert('項目は2つまでしか選択できません。');
+                }
+            };
+
+            const span = document.createElement('span');
+            span.innerText = t;
+
+            label.appendChild(cb);
+            label.appendChild(span);
+            container.appendChild(label);
+        });
+    }
+
+    if (member) {
+        const chigiriText = document.getElementById('current-chigiri-text');
+        if (chigiriText) chigiriText.innerText = member.chigiri || 'まだ契りが立てられていません。';
+        
+        const goalInput = document.getElementById('monthly-goal-text');
+        let goalVal = member.monthly_goal || '';
+        let selectedItems = [];
+        let textPart = goalVal;
+
+        if (goalVal.startsWith('{')) {
+            try {
+                const parsed = JSON.parse(goalVal);
+                selectedItems = parsed.items || [];
+                textPart = parsed.text || '';
+            } catch (e) {
+                // legacy
+            }
+        }
+
+        if (goalInput) goalInput.value = textPart;
+        
+        if (container) {
+            const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = selectedItems.includes(cb.value);
+            });
+        }
+        
+        // Update display mode UI
+        const displayItems = document.getElementById('display-goal-items');
+        const displayText = document.getElementById('display-goal-text');
+        if (displayItems) {
+            displayItems.innerText = selectedItems.length > 0 ? `【${selectedItems.join(', ')}】` : '';
+        }
+        if (displayText) {
+            displayText.innerText = textPart || '目標が設定されていません。';
+        }
+        
+        document.getElementById('personal-goal-edit').style.display = 'none';
+        document.getElementById('personal-goal-display').style.display = 'block';
     }
 }
 
@@ -241,4 +430,41 @@ function toggleSidebar() {
         overlay.classList.toggle('show');
     }
 }
+
+document.addEventListener('gasDataLoaded', (e) => {
+    const data = e.detail;
+    
+    // Overall Goal setup
+    if (data.settings) {
+        if (data.settings.overall_goal) {
+            const titleEl = document.getElementById('overall-goal-title');
+            if (titleEl) titleEl.innerText = data.settings.overall_goal;
+        }
+        if (data.settings.overall_goal_reason) {
+            const reasonEl = document.getElementById('overall-goal-reason');
+            if (reasonEl) reasonEl.innerText = data.settings.overall_goal_reason;
+        }
+    }
+
+    const openStr = data.settings && (data.settings.open || data.settings.Current_Month);
+    const closeStr = data.settings && (data.settings.close || data.settings.Deadline);
+    
+    if (openStr && closeStr) {
+        const now = new Date();
+        const openDate = new Date(openStr);
+        const closeDate = new Date(closeStr);
+        closeDate.setHours(23, 59, 59, 999);
+        
+        const btn = document.getElementById('btn-voting');
+        if (now < openDate || now > closeDate) {
+            if (btn) {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+                btn.title = '現在は投票期間外です';
+                btn.onclick = (ev) => { ev.preventDefault(); alert('現在は投票期間外です'); };
+            }
+        }
+    }
+});
 

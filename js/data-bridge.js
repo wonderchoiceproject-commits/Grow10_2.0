@@ -222,7 +222,13 @@ document.addEventListener('gasDataLoaded', (e) => {
     const select = document.getElementById('scorecard-member-select');
     if (select) {
         select.innerHTML = '';
-        members.forEach(m => {
+        const allowedCategories = ['member', 'assistant', 'chief', 'core'];
+        const filteredMembers = members.filter(m => {
+            const cat = String(m.category || '').toLowerCase().trim();
+            return allowedCategories.includes(cat);
+        });
+        
+        filteredMembers.forEach(m => {
             if (m.squadNumber) {
                 const opt = document.createElement('option');
                 opt.value = m.squadNumber;
@@ -230,8 +236,15 @@ document.addEventListener('gasDataLoaded', (e) => {
                 select.appendChild(opt);
             }
         });
-        if (members.length > 0) {
-            scSelectedUserId = members[0].squadNumber;
+        if (filteredMembers.length > 0) {
+            const userStr = sessionStorage.getItem('grow10_current_user');
+            const currentUser = userStr ? JSON.parse(userStr) : null;
+            let initialUser = filteredMembers[0].squadNumber;
+            if (currentUser && filteredMembers.some(m => String(m.squadNumber) === String(currentUser.id))) {
+                initialUser = currentUser.id;
+            }
+            scSelectedUserId = initialUser;
+            select.value = scSelectedUserId;
             renderScorecard(scSelectedUserId);
         }
     }
