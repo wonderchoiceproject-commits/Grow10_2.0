@@ -188,8 +188,10 @@ function fetchDashboardData() {
 
             // もしログインボタンが押されて待機中のユーザーがいれば、ログイン処理を続行
             if (pendingLoginUserId) {
-                finalizeLogin(pendingLoginUserId);
+                const input = document.getElementById('login-user-input');
+                if (input) input.value = pendingLoginUserId;
                 pendingLoginUserId = null;
+                switchUser();
             }
         })
         .catch(err => {
@@ -222,6 +224,9 @@ function openUserSwitcherModal(isForced = false) {
 
 function switchUser() {
     const input = document.getElementById('login-user-input');
+    const errorMsg = document.getElementById('login-error-msg');
+    if (errorMsg) errorMsg.style.display = 'none';
+
     if (!input || !input.value.trim()) return;
     
     const userId = input.value.trim();
@@ -232,6 +237,42 @@ function switchUser() {
         pendingLoginUserId = userId;
         if (btn) btn.innerText = "データを集計中... 少しお待ちください";
         return;
+    }
+    
+    // ユーザーの存在確認と権限チェック
+    if (window.globalApiData && window.globalApiData.members) {
+        const member = window.globalApiData.members.find(m => String(m.squadNumber) === String(userId));
+        if (!member) {
+            if (errorMsg) {
+                errorMsg.innerText = "入力された背番号のメンバーが見つかりません。";
+                errorMsg.style.display = 'block';
+            } else {
+                alert("入力された背番号のメンバーが見つかりません。");
+            }
+            if (btn) btn.innerText = "このユーザーでログイン";
+            return;
+        }
+
+        const CATEGORY_RANKS = {
+            'member': 1,
+            'assistant': 2,
+            'assitant': 2,
+            'chief': 3,
+            'core': 4
+        };
+        const rank = CATEGORY_RANKS[String(member.category).toLowerCase()];
+        const isEligible = rank && rank >= CATEGORY_RANKS['member'];
+        
+        if (!isEligible) {
+            if (errorMsg) {
+                errorMsg.innerText = "ログイン権限がありません（Memberランク以上が必要です）。";
+                errorMsg.style.display = 'block';
+            } else {
+                alert("ログイン権限がありません（Memberランク以上が必要です）。");
+            }
+            if (btn) btn.innerText = "このユーザーでログイン";
+            return;
+        }
     }
     
     finalizeLogin(userId);

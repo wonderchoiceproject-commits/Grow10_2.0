@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>360度評価ダッシュボード</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dashboard-body">
+  <header class="header">
+    <div class="container header-container">
+      <h1>360度評価 ダッシュボード</h1>
+      <div class="header-actions" style="display: flex; gap: 16px; align-items: center;">
+        <button id="monthlyUpdateBtn" style="padding: 8px 16px; border-radius: 4px; border: 1px solid #cbd5e1; background-color: #f8fafc; cursor: pointer; font-weight: 600;">⚙️ 月次更新</button>
+        <a href="index.html" class="nav-link">評価フォームへ戻る</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="loader" class="loader-overlay hidden">
+      <div class="spinner"></div>
+      <div class="loader-text">データ取得中...</div>
+    </div>
+
+    <!-- フィルターセクション -->
+    <section class="card filter-section">
+      <div class="filter-group">
+        <label for="personFilter">個人別分析（被評価者）</label>
+        <select id="personFilter">
+          <option value="">-- 対象者を選択 --</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="attributeFilter">属性別分析</label>
+        <select id="attributeFilter">
+          <option value="">-- 属性を選択 --</option>
+        </select>
+      </div>
+    </section>
+
+    <div class="dashboard-grid">
+      <!-- レーダーチャート (個人 vs 全体) -->
+      <section class="card chart-card">
+        <h3>総合スコア比較 (レーダーチャート)</h3>
+        <div class="chart-container">
+          <canvas id="radarChart"></canvas>
+        </div>
+      </section>
+
+      <!-- 棒グラフ (項目別平均) -->
+      <section class="card chart-card">
+        <h3>項目別平均スコア</h3>
+        <div class="chart-container">
+          <canvas id="barChart"></canvas>
+        </div>
+      </section>
+    </div>
+
+    <!-- コメント一覧 -->
+    <section class="card comments-section">
+      <h3>定性コメント一覧</h3>
+      <div id="commentsContainer" class="comments-list">
+        <p class="text-muted">対象者を選択するとコメントが表示されます。</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

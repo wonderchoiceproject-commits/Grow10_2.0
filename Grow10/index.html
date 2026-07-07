@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>360度評価システム</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-container">
+      <h1>360度評価システム</h1>
+      <div class="header-right">
+        <!-- <a href="dashboard.html" class="nav-link">ダッシュボードへ</a> -->
+        <div id="userInfo" class="user-info hidden">
+          <span class="avatar-circle" id="userAvatar"></span>
+          <span id="userNameDisplay"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="loader" class="loader-overlay hidden">
+      <div class="spinner"></div>
+      <div class="loader-text">処理中...</div>
+    </div>
+
+    <!-- ログインセクション -->
+    <section id="loginSection" class="card login-card active-section">
+      <h2>ログイン</h2>
+      <p>背番号を入力し、対象者を取得してください。</p>
+      <div class="form-group">
+        <label for="squadNumber">背番号 (ID)</label>
+        <input type="text" id="squadNumber" placeholder="例: 1234" autocomplete="off" required>
+      </div>
+      <button id="loginBtn" class="btn btn-primary btn-block">対象者を取得</button>
+      <div id="loginError" class="error-message"></div>
+    </section>
+
+    <!-- 評価セクション -->
+    <section id="evaluationSection" class="hidden active-section">
+      <div class="evaluation-header">
+        <h2>評価フォーム</h2>
+        <p>以下の対象者に対して評価を行ってください。（10が最高評価）</p>
+      </div>
+      
+      <form id="evaluationForm" onsubmit="event.preventDefault();">
+        <div id="evaluateesContainer"></div>
+        <div id="formError" class="error-message"></div>
+        <div class="submit-area">
+          <button type="submit" id="submitBtn" class="btn btn-success btn-large btn-block">評価を送信</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 完了セクション -->
+    <section id="successSection" class="card success-card hidden active-section">
+      <div class="success-icon">✓</div>
+      <h2>送信完了</h2>
+      <p>評価データが正常に保存されました。<br>ご協力ありがとうございました。</p>
+      <button class="btn btn-outline" id="resetBtn">トップに戻る</button>
+    </section>
+  </main>
+
+  <script src="js/api.js?v=2"></script>
+  <script src="js/app.js?v=2"></script>
+</body>
+</html>
