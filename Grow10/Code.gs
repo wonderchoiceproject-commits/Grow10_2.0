@@ -1,4 +1,4 @@
-const SPREADSHEET_ID = '1YQf0Og8RF-CDz9I3NxOWug08H39vl-WLbG_gEFZXb0g';
+// SPREADSHEET_ID is no longer needed because we use getActiveSpreadsheet()
 
 const CATEGORY_RANKS = {
   'member': 1,
@@ -62,7 +62,50 @@ function doPost(e) {
 
 function getEvaluatees(evaluatorId) {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // --- 投票期間のチェック ---
+    const settingsSheet = ss.getSheetByName('Setting') || ss.getSheetByName('Settings');
+    if (settingsSheet) {
+      const data = settingsSheet.getDataRange().getValues();
+      if (data.length >= 2) {
+        const headers = data[0];
+        const row = data[1];
+        let openStr = '';
+        let closeStr = '';
+        let currentMonth = '';
+        let deadline = '';
+        headers.forEach((h, i) => {
+          const key = String(h).trim();
+          if (key === 'open') openStr = row[i];
+          if (key === 'close') closeStr = row[i];
+          if (key === 'Current_Month') currentMonth = row[i];
+          if (key === 'Deadline') deadline = row[i];
+        });
+        
+        openStr = openStr || currentMonth;
+        closeStr = closeStr || deadline;
+        
+        if (!openStr || !closeStr) {
+          return { error: '現在は評価期間外です。（期間が設定されていません）' };
+        }
+        
+        const now = new Date();
+        const openDate = new Date(openStr);
+        const closeDate = new Date(closeStr);
+        
+        if (!isNaN(openDate) && !isNaN(closeDate)) {
+          // 終了日はその日の終わりまでとする場合
+          closeDate.setHours(23, 59, 59, 999);
+          
+          if (now < openDate || now > closeDate) {
+            return { error: '現在は評価期間外です。' };
+          }
+        } else {
+          return { error: '設定シートの期間の日付形式が正しくありません。' };
+        }
+      }
+    }
     
     // --- departmentsシートから「grow」対象のidを抽出 ---
     const deptsSheet = ss.getSheetByName('departments');
@@ -94,7 +137,7 @@ function getEvaluatees(evaluatorId) {
     }
     // ---------------------------------------------------
 
-    const membersSheet = ss.getSheetByName('members');
+    const membersSheet = ss.getSheetByName('members') || ss.getSheetByName('member');
     if (!membersSheet) return { error: '「members」シートが見つかりません。' };
 
     const data = membersSheet.getDataRange().getValues();
@@ -163,7 +206,7 @@ function getEvaluatees(evaluatorId) {
 
 function submitEvaluations(data) {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
     
     // Settingsシートから対象月を取得
     const settingsSheet = ss.getSheetByName('Settings');
@@ -216,7 +259,7 @@ function submitEvaluations(data) {
     }
 
     // membersシートのanswered列をtrueにする
-    const membersSheet = ss.getSheetByName('members');
+    const membersSheet = ss.getSheetByName('members') || ss.getSheetByName('member');
     if (membersSheet) {
       const membersData = membersSheet.getDataRange().getValues();
       const headers = membersData[0];
@@ -241,7 +284,7 @@ function submitEvaluations(data) {
 
 function getDashboardData() {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
     
     const responsesSheet = ss.getSheetByName('Evaluation_Responses');
     if (!responsesSheet) return { error: '評価データがありません。' };
@@ -280,7 +323,7 @@ function getDashboardData() {
       };
     });
     
-    const membersSheet = ss.getSheetByName('members');
+    const membersSheet = ss.getSheetByName('members') || ss.getSheetByName('member');
     const membersMap = {};
     if (membersSheet) {
       const mData = membersSheet.getDataRange().getValues();
@@ -307,7 +350,7 @@ function getDashboardData() {
 
 function updateMonthlySettings(data) {
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
     
     let settingsSheet = ss.getSheetByName('Settings');
     if (!settingsSheet) {
@@ -318,7 +361,7 @@ function updateMonthlySettings(data) {
     settingsSheet.getRange('A2').setValue('Deadline');
     settingsSheet.getRange('B2').setValue(data.deadline);
 
-    const membersSheet = ss.getSheetByName('members');
+    const membersSheet = ss.getSheetByName('members') || ss.getSheetByName('member');
     if (membersSheet) {
       const membersData = membersSheet.getDataRange().getValues();
       if (membersData.length > 0) {
