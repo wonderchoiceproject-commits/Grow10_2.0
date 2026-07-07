@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ====== DATA FETCHING LOGIC ======
 let isDataLoaded = false;
 let pendingLoginUserId = null;
-const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbzZdYWOzukbkEhjLRds2YEY8B7yQO7InIrKUxznIdUGy9xUtxNMZZ1S45-Sw_Wj0Y3z/exec";
+const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbyUSsfQMxg-TJzKSoQZrv1cr1eR-s-9yqN7O6Zc8QSzYukvhkLnQycIHR-bDI3_Uc8/exec";
 
 function fetchDashboardData() {
     const fetchUrl = GAS_WEBAPP_URL.includes('?') ? `${GAS_WEBAPP_URL}&action=getDashboardRawData` : `${GAS_WEBAPP_URL}?action=getDashboardRawData`;
