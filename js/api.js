@@ -1,6 +1,6 @@
 // GASのWebアプリURL（デプロイ後にここを書き換える）
 // ※ デプロイ時に「実行するユーザー: 自分」「アクセスできるユーザー: 全員」に設定すること
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyUSsfQMxg-TJzKSoQZrv1cr1eR-s-9yqN7O6Zc8QSzYukvhkLnQycIHR-bDI3_Uc8/exec'; 
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyO-DhmDsm16W1sRvsCOFZ5UjXBZjAQB-m-jX5mrYyh6TbWSrsa9nV_OkIh6W4PhR0/exec'; 
 
 const API = {
   async fetchEvaluatees(evaluatorId) {

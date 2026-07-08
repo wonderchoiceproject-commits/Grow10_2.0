@@ -163,7 +163,7 @@
             
             <!-- Chigiri (Pledge) Display Card -->
             <div class="card chigiri-display-card">
-              <h2 class="card-title" style="color: var(--accent-amber);">⚔️ 今日の契り (Chigiri)</h2>
+              <h2 class="card-title" style="color: var(--accent-amber);">⚔️ 契り (Chigiri)</h2>
               <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
                 あなたが今日、全力を尽くすと誓った行動です。
               </p>
@@ -175,12 +175,18 @@
               </button>
             </div>
 
-            </div>
-            
           </div>
+
           <!-- Right Column -->
           <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-            <!-- サマリーカードは削除されました -->
+            <!-- Everyone's Chigiri -->
+            <div class="card">
+              <h2 class="card-title" style="color: var(--accent-emerald);">👥 みんなの契り</h2>
+              <div class="chigiri-feed" id="all-chigiri-container" style="max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px;">
+                <div style="text-align: center; color: var(--text-secondary); padding: 10px;">読み込み中...</div>
+              </div>
+            </div>
+
             <!-- Feedback Feed Card -->
             <div class="card">
               <h2 class="card-title">💬 最近届いたフィードバック</h2>
@@ -237,6 +243,9 @@
           <!-- Main chart area -->
           <div class="scorecard-content-area">
             <div id="sc-content-radar" class="sc-content-pane active" style="width: 100%; height: 100%; position: relative;">
+               <div id="radar-month-checkboxes" style="position: absolute; top: 0; right: 0; z-index: 10; background: rgba(15,23,42,0.8); padding: 8px; border-radius: 8px; display: flex; flex-direction: column; gap: 4px; max-height: 150px; overflow-y: auto;">
+                   <!-- Checkboxes injected by JS -->
+               </div>
                <canvas id="scChartRadar"></canvas>
             </div>
             <div id="sc-content-dist" class="sc-content-pane" style="display: none; width: 100%; height: 100%; position: relative;">
@@ -253,7 +262,10 @@
                     <option value="正確さ">正確さ</option>
                     <option value="懸命さ">懸命さ</option>
                     <option value="柔軟性">柔軟性</option>
-                    <option value="ホスピタリティー">ホスピタリティー</option>
+                   <option value="ホスピタリティー">ホスピタリティー</option>
+                 </select>
+                 <select id="sc-dist-month-select" onchange="onScorecardDistTopicChange()" style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); color: #f8fafc; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; outline: none; cursor: pointer; margin-left: 5px;">
+                    <option value="all">全期間 (All)</option>
                  </select>
                </div>
                <canvas id="scChartDist"></canvas>
@@ -314,10 +326,12 @@
                 </div>
             </div>
             <div class="stat-card" style="background-color: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 24px; display: flex; align-items: center; gap: 20px;">
-                <div class="stat-icon avg" style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background-color: rgba(52, 211, 153, 0.1); color: #34d399;">👥</div>
-                <div class="stat-info" style="display: flex; flex-direction: column;">
-                    <span class="stat-label" style="font-size: 14px; color: #94a3b8; margin-bottom: 4px;">評価対象人数</span>
-                    <div class="stat-value" id="statTotalUsers" style="font-size: 32px; font-weight: bold; color: #f8fafc;">0 <span style="font-size: 16px; color: #94a3b8; font-weight: normal;">人</span></div>
+                <div class="stat-icon avg" style="width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background-color: rgba(52, 211, 153, 0.1); color: #34d399;">📅</div>
+                <div class="stat-info" style="display: flex; flex-direction: column; flex-grow: 1;">
+                    <span class="stat-label" style="font-size: 14px; color: #94a3b8; margin-bottom: 8px;">対象月選択（全体集計用）</span>
+                    <select id="globalMonthSelector" onchange="window.onGlobalMonthChange()" style="background-color: #0f172a; border: 1px solid #334155; color: #f8fafc; padding: 8px 12px; border-radius: 8px; font-size: 16px; width: 100%; outline: none; cursor: pointer;">
+                        <option value="all">全期間 (All)</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -431,10 +445,10 @@
   <div id="toast" class="toast">目標が保存されました！</div>
 
   <!-- GAS API 連携とグローバルステート管理 -->
-  <script src="js/data-bridge.js?v=2"></script>
+  <script src="js/data-bridge.js?v=3"></script>
   <!-- Main scripts -->
-  <script src="js/data.js?v=2"></script>
-  <script src="js/app.js?v=2"></script>
+  <script src="js/data.js?v=3"></script>
+  <script src="js/app.js?v=3"></script>
   
   <!-- React Component (entire-result) -->
   <script type="text/babel">

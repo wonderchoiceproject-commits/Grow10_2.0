@@ -16,33 +16,201 @@ const dimensionMeta = {
 };
 
 let calculatedGrowData = {};
+let globalEvaluations = [];
+let globalMemberMap = {};
+let availableMonths = [];
+let currentGlobalMonth = 'all';
 
 document.addEventListener('gasDataLoaded', (e) => {
     const apiData = e.detail;
-    const { evaluations = [], members = [] } = apiData;
+    globalEvaluations = apiData.evaluations || [];
+    const members = apiData.members || [];
 
-    const memberMap = {};
+    globalMemberMap = {};
     members.forEach(m => {
         const sq = String(m.squadNumber).trim();
         if (sq) {
-            memberMap[sq] = m.name || sq;
+            globalMemberMap[sq] = m.name || sq;
         }
     });
+
+    // Extract available months
+    const monthSet = new Set();
+    globalEvaluations.forEach(r => {
+        if (r.Target_Month) monthSet.add(r.Target_Month);
+    });
+    availableMonths = Array.from(monthSet).sort().reverse(); // newest first
+
+    // Populate global month selector
+    const globalMonthSelect = document.getElementById('globalMonthSelector');
+    if (globalMonthSelect) {
+        globalMonthSelect.innerHTML = '<option value="all">全期間 (All)</option>';
+        availableMonths.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            globalMonthSelect.appendChild(opt);
+        });
+    }
+
+    // Populate dist month select
+    const distMonthSelect = document.getElementById('sc-dist-month-select');
+    if (distMonthSelect) {
+        distMonthSelect.innerHTML = '<option value="all">全期間 (All)</option>';
+        availableMonths.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = m;
+            distMonthSelect.appendChild(opt);
+        });
+    }
+
+    // Populate radar checkboxes
+    const radarCbContainer = document.getElementById('radar-month-checkboxes');
+    if (radarCbContainer) {
+        radarCbContainer.innerHTML = '';
+        availableMonths.forEach((m, idx) => {
+            const label = document.createElement('label');
+            label.style.display = 'flex';
+            label.style.alignItems = 'center';
+            label.style.gap = '6px';
+            label.style.color = '#f8fafc';
+            label.style.fontSize = '0.8rem';
+            label.style.cursor = 'pointer';
+            
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = m;
+            cb.className = 'radar-month-cb';
+            // Default check the first (newest) two months, or all if less than 2
+            if (idx < 2) cb.checked = true;
+            cb.onchange = () => { if(typeof scSelectedUserId !== 'undefined' && scSelectedUserId) renderScorecard(scSelectedUserId); };
+            
+            label.appendChild(cb);
+            label.appendChild(document.createTextNode(m));
+            radarCbContainer.appendChild(label);
+        });
+    }
 
     // データロード完了時に、まだ名前解決されていないログインユーザー情報があれば更新する
     if (typeof updateUserProfile === 'function') {
         updateUserProfile();
     }
 
+    // Populate all chigiri feed
+    const allChigiriContainer = document.getElementById('all-chigiri-container');
+    if (allChigiriContainer) {
+        allChigiriContainer.innerHTML = '';
+        const membersWithChigiri = members.filter(m => m.chigiri && m.chigiri.trim() !== '');
+        
+        if (membersWithChigiri.length === 0) {
+            allChigiriContainer.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 10px;">契りを立てたメンバーはいません。</div>';
+        } else {
+            membersWithChigiri.forEach(m => {
+                const card = document.createElement('div');
+                card.style.background = 'rgba(255, 255, 255, 0.03)';
+                card.style.border = '1px solid rgba(255, 255, 255, 0.08)';
+                card.style.borderRadius = '8px';
+                card.style.padding = '10px 12px';
+                card.style.marginBottom = '6px';
+                
+                const header = document.createElement('div');
+                header.style.display = 'flex';
+                header.style.alignItems = 'center';
+                header.style.gap = '8px';
+                header.style.marginBottom = '6px';
+                
+                const nameStr = document.createElement('span');
+                nameStr.style.fontWeight = 'bold';
+                nameStr.style.color = 'var(--text-primary)';
+                nameStr.style.fontSize = '0.9rem';
+                nameStr.innerText = m.name;
+
+                header.appendChild(nameStr);
+                
+                const chigiriText = document.createElement('div');
+                chigiriText.style.color = 'var(--accent-amber)';
+                chigiriText.style.fontSize = '0.85rem';
+                chigiriText.style.lineHeight = '1.4';
+                chigiriText.style.whiteSpace = 'pre-wrap';
+                // HTML tags should be escaped, innerText does that
+                chigiriText.innerText = m.chigiri;
+
+                card.appendChild(header);
+                card.appendChild(chigiriText);
+                allChigiriContainer.appendChild(card);
+            });
+        }
+    }
+
+    // 初期計算
+    recalculateGlobalStats('all');
+
+    // Generate menu buttons for "by-items" tab
+    const selectorGrid = document.getElementById('dim-selector-grid');
+    if (selectorGrid) {
+        selectorGrid.innerHTML = '';
+        topics.forEach(topic => {
+            const btn = document.createElement('button');
+            btn.className = 'dim-btn';
+            btn.style.padding = '8px 12px';
+            btn.style.margin = '4px';
+            btn.style.borderRadius = '8px';
+            btn.style.border = '1px solid #334155';
+            btn.style.background = '#1e293b';
+            btn.style.color = '#94a3b8';
+            btn.style.cursor = 'pointer';
+            btn.innerHTML = `${dimensionMeta[topic].icon} ${topic}`;
+            btn.onclick = () => {
+                document.querySelectorAll('.dim-btn').forEach(b => {
+                    b.style.color = '#94a3b8';
+                    b.style.background = '#1e293b';
+                });
+                btn.style.color = '#fff';
+                btn.style.background = '#38bdf8';
+                renderByItemsTab(topic);
+            };
+            selectorGrid.appendChild(btn);
+        });
+    }
+
+    // Default render if on by-items tab
+    if (document.getElementById('tab-by-items').classList.contains('active')) {
+        renderByItemsTab('協調性');
+    }
+});
+
+window.onGlobalMonthChange = function() {
+    const selector = document.getElementById('globalMonthSelector');
+    if (selector) {
+        currentGlobalMonth = selector.value;
+        recalculateGlobalStats(currentGlobalMonth);
+        
+        // Refresh currently selected topic if in by-items tab
+        const activeTopicBtn = document.querySelector('.dim-btn[style*="color: rgb(255, 255, 255)"]');
+        let currentTopic = '協調性';
+        if (activeTopicBtn) {
+            currentTopic = activeTopicBtn.innerText.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|\s/g, '').trim(); // Remove icon
+            // Make sure the topic actually matches the keys
+            const validTopic = Object.keys(dimensionMeta).find(k => activeTopicBtn.innerText.includes(k));
+            if(validTopic) currentTopic = validTopic;
+        }
+        renderByItemsTab(currentTopic);
+    }
+};
+
+function recalculateGlobalStats(monthFilter) {
     const topics = Object.keys(dimensionMeta);
     const aggregated = {};
 
-    evaluations.forEach(row => {
+    globalEvaluations.forEach(row => {
+        if (monthFilter !== 'all' && row.Target_Month !== monthFilter) return;
+
         const empId = String(row.Evaluatee_ID || '').trim();
         if (!empId) return;
 
         if (!aggregated[empId]) {
-            aggregated[empId] = { empId, name: memberMap[empId] || `背番号: ${empId}`, count: 0, scores: {} };
+            aggregated[empId] = { empId, name: globalMemberMap[empId] || `背番号: ${empId}`, count: 0, scores: {} };
             topics.forEach(t => { aggregated[empId].scores[t] = 0; });
         }
         aggregated[empId].count += 1;
@@ -85,40 +253,7 @@ document.addEventListener('gasDataLoaded', (e) => {
             ranking: ranking
         };
     });
-
-    // Generate menu buttons for "by-items" tab
-    const selectorGrid = document.getElementById('dim-selector-grid');
-    if (selectorGrid) {
-        selectorGrid.innerHTML = '';
-        topics.forEach(topic => {
-            const btn = document.createElement('button');
-            btn.className = 'dim-btn';
-            btn.style.padding = '8px 12px';
-            btn.style.margin = '4px';
-            btn.style.borderRadius = '8px';
-            btn.style.border = '1px solid #334155';
-            btn.style.background = '#1e293b';
-            btn.style.color = '#94a3b8';
-            btn.style.cursor = 'pointer';
-            btn.innerHTML = `${dimensionMeta[topic].icon} ${topic}`;
-            btn.onclick = () => {
-                document.querySelectorAll('.dim-btn').forEach(b => {
-                    b.style.color = '#94a3b8';
-                    b.style.background = '#1e293b';
-                });
-                btn.style.color = '#fff';
-                btn.style.background = '#38bdf8';
-                renderByItemsTab(topic);
-            };
-            selectorGrid.appendChild(btn);
-        });
-    }
-
-    // Default render if on by-items tab
-    if (document.getElementById('tab-by-items').classList.contains('active')) {
-        renderByItemsTab('協調性');
-    }
-});
+}
 
 window.renderByItemsTab = function(topic) {
     if (!calculatedGrowData[topic]) return;
@@ -267,24 +402,31 @@ window.renderScorecard = function(userId) {
     
     // User stats
     const userEvals = evaluations.filter(r => String(r.Evaluatee_ID) === String(userId));
-    const userScores = {};
-    const userCounts = {};
-    let userTotalSum = 0;
-    let userTotalCount = 0;
-
+    
     // For distribution
     const allUserScores = [];
     const distTopicSelect = document.getElementById('sc-dist-topic-select');
     const selectedDistTopic = distTopicSelect ? distTopicSelect.value : '総合';
+    const distMonthSelect = document.getElementById('sc-dist-month-select');
+    const selectedDistMonth = distMonthSelect ? distMonthSelect.value : 'all';
     
     // For trend
     const trendDataByMonth = {};
 
-    topics.forEach(t => { userScores[t] = 0; userCounts[t] = 0; });
+    // For Radar Chart
+    const radarDataByMonth = {};
+    const selectedRadarMonths = Array.from(document.querySelectorAll('.radar-month-cb:checked')).map(cb => cb.value);
 
     userEvals.forEach(row => {
         const month = row.Target_Month || 'Unknown';
+        
+        // Accumulate trend data
         if (!trendDataByMonth[month]) trendDataByMonth[month] = { sum: 0, count: 0 };
+        // Accumulate radar data
+        if (!radarDataByMonth[month]) {
+             radarDataByMonth[month] = { scores: {}, counts: {} };
+             topics.forEach(t => { radarDataByMonth[month].scores[t] = 0; radarDataByMonth[month].counts[t] = 0; });
+        }
 
         let rowSum = 0;
         let rowCount = 0;
@@ -292,16 +434,16 @@ window.renderScorecard = function(userId) {
         topics.forEach(t => {
             const val = Number(row[t]);
             if (!isNaN(val)) {
-                userScores[t] += val;
-                userCounts[t]++;
-                userTotalSum += val;
-                userTotalCount++;
+                radarDataByMonth[month].scores[t] += val;
+                radarDataByMonth[month].counts[t]++;
                 
                 // ヒストグラム用のデータ収集
-                if (selectedDistTopic === '総合') {
-                    allUserScores.push(val); // 総合の場合は全項目のスコアを全て入れる（または平均にする等の仕様があるが、既存に合わせて全スコアを入れる）
-                } else if (selectedDistTopic === t) {
-                    allUserScores.push(val); // 選択された項目のスコアだけを入れる
+                if (selectedDistMonth === 'all' || selectedDistMonth === month) {
+                    if (selectedDistTopic === '総合') {
+                        allUserScores.push(val); 
+                    } else if (selectedDistTopic === t) {
+                        allUserScores.push(val); 
+                    }
                 }
 
                 rowSum += val;
@@ -315,35 +457,33 @@ window.renderScorecard = function(userId) {
         }
     });
 
-    const userAvg = {};
-    topics.forEach(t => {
-        userAvg[t] = userCounts[t] > 0 ? (userScores[t] / userCounts[t]) : 0;
-    });
-    const userTotalAvg = userTotalCount > 0 ? (userTotalSum / userTotalCount) : 0;
+    // Radar Chart Datasets
+    const radarDatasets = [];
+    const colors = [
+        { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.2)' }, // Blue
+        { border: '#10b981', bg: 'rgba(16, 185, 129, 0.2)' }, // Green
+        { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.2)' }, // Amber
+        { border: '#ec4899', bg: 'rgba(236, 72, 153, 0.2)' }, // Pink
+        { border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.2)' }  // Violet
+    ];
 
-    // Update Header
-    document.getElementById('sc-user-name').innerText = member.name;
-    document.getElementById('sc-user-id').innerText = member.squadNumber;
-    document.getElementById('sc-total-score').innerText = userTotalAvg.toFixed(2);
-    document.getElementById('sc-user-chigiri').innerText = "自分自身の限界を超え、チームの成長に貢献する。"; // Mock
-
-    // Update Table
-    const tbody = document.getElementById('sc-details-tbody');
-    if (tbody) {
-        tbody.innerHTML = '';
-        topics.forEach(t => {
-            const diff = userAvg[t] - scOverallAverages[t];
-            const diffColor = diff >= 0 ? '#10b981' : '#ef4444';
-            const diffSign = diff > 0 ? '+' : '';
-            tbody.innerHTML += `
-                <tr style="border-bottom: 1px solid #cbd5e1;">
-                  <td style="padding: 12px 24px; border-right: 1px solid #cbd5e1; font-weight: bold;">${t}</td>
-                  <td style="padding: 12px 24px; border-right: 1px solid #cbd5e1; font-size: 1.2rem; font-weight: bold; color: #0284c7;">${userAvg[t].toFixed(2)}</td>
-                  <td style="padding: 12px 24px; font-weight: bold; color: ${diffColor};">${diffSign}${diff.toFixed(2)}</td>
-                </tr>
-            `;
+    selectedRadarMonths.forEach((m, idx) => {
+        if (!radarDataByMonth[m]) return;
+        const color = colors[idx % colors.length];
+        const data = topics.map(t => radarDataByMonth[m].counts[t] > 0 ? (radarDataByMonth[m].scores[t] / radarDataByMonth[m].counts[t]) : 0);
+        
+        radarDatasets.push({
+            label: m,
+            data: data,
+            backgroundColor: color.bg,
+            borderColor: color.border,
+            borderWidth: 2,
+            pointBackgroundColor: color.border,
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: color.border
         });
-    }
+    });
 
     // Radar Chart
     const ctxRadar = document.getElementById('scChartRadar');
@@ -353,40 +493,90 @@ window.renderScorecard = function(userId) {
             type: 'radar',
             data: {
                 labels: topics,
-                datasets: [
-                    {
-                        label: '個人平均',
-                        data: topics.map(t => userAvg[t]),
-                        backgroundColor: 'rgba(56, 189, 248, 0.4)',
-                        borderColor: '#38bdf8',
-                        pointBackgroundColor: '#38bdf8',
-                        borderWidth: 2
-                    },
-                    {
-                        label: '全体平均',
-                        data: topics.map(t => scOverallAverages[t]),
-                        backgroundColor: 'rgba(148, 163, 184, 0.2)',
-                        borderColor: '#94a3b8',
-                        pointBackgroundColor: '#94a3b8',
-                        borderWidth: 1,
-                        borderDash: [5, 5]
-                    }
-                ]
+                datasets: radarDatasets
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 scales: {
                     r: {
-                        min: 0,
-                        max: 10,
-                        ticks: { stepSize: 2, display: false },
-                        grid: { color: '#e2e8f0' },
-                        pointLabels: { font: { size: 12 }, color: '#475569' }
+                        min: 0, max: 10,
+                        angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        pointLabels: { color: '#f8fafc', font: { size: 12 } },
+                        ticks: { display: false }
                     }
+                },
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#f8fafc' } }
                 }
             }
         });
+    }
+
+    // Update Header
+    document.getElementById('sc-user-name').innerText = member.name;
+    document.getElementById('sc-user-id').innerText = member.squadNumber;
+    
+    // Update Table
+    const tbody = document.getElementById('sc-details-tbody');
+    if (tbody) {
+        tbody.innerHTML = '';
+        let totalUSum = 0;
+        let totalAvgSum = 0;
+        let topicCount = 0;
+
+        topics.forEach(t => {
+            // Recalculate average for the specific topic based on selected radar months
+            let uSum = 0;
+            let uCnt = 0;
+            selectedRadarMonths.forEach(m => {
+                 if (radarDataByMonth[m] && radarDataByMonth[m].counts[t] > 0) {
+                     uSum += radarDataByMonth[m].scores[t];
+                     uCnt += radarDataByMonth[m].counts[t];
+                 }
+            });
+            const uAvg = uCnt > 0 ? (uSum / uCnt) : 0;
+            const globalAvg = scOverallAverages[t] || 0;
+            
+            totalUSum += uAvg;
+            totalAvgSum += globalAvg;
+            topicCount++;
+
+            const diff = uAvg - globalAvg;
+            const diffColor = diff >= 0 ? '#10b981' : '#ef4444';
+            const diffSign = diff > 0 ? '+' : '';
+            tbody.innerHTML += `
+                <tr style="border-bottom: 1px solid #cbd5e1;">
+                  <td style="padding: 12px 24px; border-right: 1px solid #cbd5e1; font-weight: bold;">${t}</td>
+                  <td style="padding: 12px 24px; border-right: 1px solid #cbd5e1; font-size: 1.2rem; font-weight: bold; color: #0284c7;">${uAvg.toFixed(2)}</td>
+                  <td style="padding: 12px 24px; font-weight: bold; color: ${diffColor};">${diffSign}${diff.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+
+        if (topicCount > 0) {
+            const overallUAvg = totalUSum / topicCount;
+            const overallGAvg = totalAvgSum / topicCount;
+            const overallDiff = overallUAvg - overallGAvg;
+            const overallDiffColor = overallDiff >= 0 ? '#10b981' : '#ef4444';
+            const overallDiffSign = overallDiff > 0 ? '+' : '';
+            
+            // Update the large score circle in the header
+            const totalScoreEl = document.getElementById('sc-total-score');
+            if (totalScoreEl) {
+                totalScoreEl.innerText = overallUAvg.toFixed(1);
+            }
+
+            // Add "総合" as the top row (or bottom row, prepending it to be prominent)
+            const overallHtml = `
+                <tr style="border-bottom: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.05);">
+                  <td style="padding: 14px 24px; border-right: 1px solid #cbd5e1; font-weight: 800; color: #38bdf8; font-size: 1.1rem;">★ 総合評価</td>
+                  <td style="padding: 14px 24px; border-right: 1px solid #cbd5e1; font-size: 1.3rem; font-weight: 900; color: #0284c7;">${overallUAvg.toFixed(2)}</td>
+                  <td style="padding: 14px 24px; font-weight: 900; font-size: 1.1rem; color: ${overallDiffColor};">${overallDiffSign}${overallDiff.toFixed(2)}</td>
+                </tr>
+            `;
+            tbody.innerHTML = overallHtml + tbody.innerHTML;
+        }
     }
 
     // Dist Chart
@@ -412,7 +602,7 @@ window.renderScorecard = function(userId) {
                 responsive: true, maintainAspectRatio: false, 
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
+                    y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' } },
                     x: { grid: { display: false }, ticks: { color: '#64748b' } }
                 }
             }
@@ -446,7 +636,7 @@ window.renderScorecard = function(userId) {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { min: 0, max: 10, grid: { color: '#f1f5f9' }, ticks: { color: '#64748b' } },
+                    y: { min: 0, max: 10, grid: { color: '#1e293b' }, ticks: { color: '#64748b' } },
                     x: { grid: { display: false }, ticks: { color: '#64748b' } }
                 }
             }
