@@ -46,6 +46,10 @@
       <div class="evaluation-header">
         <h2>評価フォーム</h2>
         <p>以下の対象者に対して評価を行ってください。（10が最高評価）</p>
+        <div class="view-toggle-container">
+          <button type="button" id="toggleViewPerson" class="view-toggle-btn active" onclick="switchViewMode('person')">👤 人ごとに評価</button>
+          <button type="button" id="toggleViewMetric" class="view-toggle-btn" onclick="switchViewMode('metric')">📊 項目ごとに評価</button>
+        </div>
       </div>
       
       <form id="evaluationForm" onsubmit="event.preventDefault();">

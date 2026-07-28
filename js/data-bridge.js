@@ -34,10 +34,28 @@ document.addEventListener('gasDataLoaded', (e) => {
         }
     });
 
+    function formatMonthString(val) {
+        if (!val) return '';
+        if (typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
+            const d = new Date(val);
+            if (!isNaN(d)) {
+                return `${d.getFullYear()}年${d.getMonth() + 1}月`;
+            }
+        }
+        return String(val).trim();
+    }
+
+    // Format all targetMonth fields to avoid ISO date strings
+    globalEvaluations.forEach(r => {
+        if (r.targetMonth) r.targetMonth = formatMonthString(r.targetMonth);
+        if (r.Target_Month) r.Target_Month = formatMonthString(r.Target_Month);
+    });
+
     // Extract available months
     const monthSet = new Set();
     globalEvaluations.forEach(r => {
-        if (r.Target_Month) monthSet.add(r.Target_Month);
+        if (r.targetMonth) monthSet.add(r.targetMonth);
+        else if (r.Target_Month) monthSet.add(r.Target_Month);
     });
     availableMonths = Array.from(monthSet).sort().reverse(); // newest first
 
@@ -56,7 +74,7 @@ document.addEventListener('gasDataLoaded', (e) => {
     // Populate dist month select
     const distMonthSelect = document.getElementById('sc-dist-month-select');
     if (distMonthSelect) {
-        distMonthSelect.innerHTML = '<option value="all">全期間 (All)</option>';
+        distMonthSelect.innerHTML = ''; // 全期間(All)を削除
         availableMonths.forEach(m => {
             const opt = document.createElement('option');
             opt.value = m;

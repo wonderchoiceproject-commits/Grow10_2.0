@@ -36,6 +36,10 @@ function doGet(e) {
     return jsonResponse(getDashboardData());
   }
   
+  if (action === 'getDashboardRawData') {
+    return jsonResponse(getDashboardRawData());
+  }
+  
   return jsonResponse({ error: 'Invalid action parameter.' });
 }
 
@@ -50,6 +54,10 @@ function doPost(e) {
     
     if (action === 'updateMonthlySettings') {
       return jsonResponse(updateMonthlySettings(postData.data));
+    }
+    
+    if (action === 'updateMemberGoals') {
+      return jsonResponse(updateMemberGoals(postData.data));
     }
     
     return jsonResponse({ error: 'Invalid action.' });
@@ -209,25 +217,30 @@ function submitEvaluations(data) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     
     // Settingsシートから対象月を取得
-    const settingsSheet = ss.getSheetByName('Settings');
+    const settingsSheet = ss.getSheetByName('Setting') || ss.getSheetByName('Settings');
     let targetMonth = '';
     if (settingsSheet) {
-      targetMonth = settingsSheet.getRange('B1').getValue();
+      const data = settingsSheet.getDataRange().getValues();
+      if (data.length >= 2) {
+        const headers = data[0];
+        const row = data[1];
+        headers.forEach((h, i) => {
+          if (String(h).trim() === 'Current_Month') {
+            targetMonth = String(row[i]).trim();
+          }
+        });
+      }
     }
     
+    if (!targetMonth) {
+      return { error: 'Settingsシートに対象月 (Current_Month) が設定されていません。' };
+    }
+
     const sheetName = 'Evaluation_Responses_' + targetMonth;
     let responsesSheet = ss.getSheetByName(sheetName);
     
     if (!responsesSheet) {
-      responsesSheet = ss.insertSheet(sheetName);
-      const headers = [
-        'Timestamp', 'Target_Month', 'Evaluator_ID', 'Evaluatee_ID', 'Attributes', '協調性', '素直さ', 
-        '積極性', '明るさ', '礼儀正しさ', '清潔さ', '正確さ', '懸命さ', 
-        '柔軟性', 'ホスピタリティー', 'Comment'
-      ];
-      responsesSheet.appendRow(headers);
-      responsesSheet.setFrozenRows(1);
-      responsesSheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#f1f5f9');
+      return { error: `対象月のシート (${sheetName}) が存在しません。管理者に「月次更新」を依頼してください。` };
     }
 
     const timestamp = new Date();
@@ -283,60 +296,96 @@ function submitEvaluations(data) {
   }
 }
 
-function getDashboardData() {
+function createNewMonthSheet() {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    const sheets = ss.getSheets();
-    const responses = [];
-    let hasData = false;
-    
-    for (const sheet of sheets) {
-      const sheetName = sheet.getName();
-      if (sheetName.startsWith('Evaluation_Responses_') || sheetName === 'Evaluation_Responses') {
-        const rData = sheet.getDataRange().getValues();
-        if (rData.length <= 1) continue;
-        
-        hasData = true;
-        const rRows = rData.slice(1);
-        const rHeaders = rData[0];
-        const targetMonthIdx = rHeaders.indexOf('Target_Month');
-        const hasTargetMonth = targetMonthIdx !== -1;
-        
-        rRows.forEach(row => {
-          const offset = hasTargetMonth ? 1 : 0;
-          
-          // シート名から対象月を補完（もしシート内に Target_Month 列がない場合など）
-          let targetMonth = hasTargetMonth ? row[1] : '';
-          if (!targetMonth && sheetName.startsWith('Evaluation_Responses_')) {
-            targetMonth = sheetName.replace('Evaluation_Responses_', '');
+    // Settingsシートから対象月を取得
+    const settingsSheet = ss.getSheetByName('Setting') || ss.getSheetByName('Settings');
+    let targetMonth = '';
+    if (settingsSheet) {
+      const data = settingsSheet.getDataRange().getValues();
+      if (data.length >= 2) {
+        const headers = data[0];
+        const row = data[1];
+        headers.forEach((h, i) => {
+          if (String(h).trim() === 'Current_Month') {
+            targetMonth = String(row[i]).trim();
           }
-
-          responses.push({
-            timestamp: row[0],
-            targetMonth: targetMonth,
-            evaluatorId: row[1 + offset],
-            evaluateeId: row[2 + offset],
-            attributes: String(row[3 + offset]).split(',').map(s=>s.trim()).filter(s=>s),
-            scores: {
-              '協調性': Number(row[4 + offset]) || 0,
-              '素直さ': Number(row[5 + offset]) || 0,
-              '積極性': Number(row[6 + offset]) || 0,
-              '明るさ': Number(row[7 + offset]) || 0,
-              '礼儀正しさ': Number(row[8 + offset]) || 0,
-              '清潔さ': Number(row[9 + offset]) || 0,
-              '正確さ': Number(row[10 + offset]) || 0,
-              '懸命さ': Number(row[11 + offset]) || 0,
-              '柔軟性': Number(row[12 + offset]) || 0,
-              'ホスピタリティー': Number(row[13 + offset]) || 0
-            },
-            comment: row[14 + offset]
-          });
         });
       }
     }
     
-    if (!hasData) return { error: '評価データがありません。' };
+    if (!targetMonth) {
+      SpreadsheetApp.getUi().alert('エラー', 'Settingシートに Current_Month が設定されていません。', SpreadsheetApp.getUi().ButtonSet.OK);
+      return;
+    }
+
+    const sheetName = 'Evaluation_Responses_' + targetMonth;
+    let responsesSheet = ss.getSheetByName(sheetName);
+    
+    if (responsesSheet) {
+      SpreadsheetApp.getUi().alert('お知らせ', `シート "${sheetName}" は既に存在します。`, SpreadsheetApp.getUi().ButtonSet.OK);
+      return;
+    }
+
+    // 新しいシートを作成
+    responsesSheet = ss.insertSheet(sheetName);
+    const headers = [
+      'Timestamp', 'Target_Month', 'Evaluator_ID', 'Evaluatee_ID', 'Attributes', '協調性', '素直さ', 
+      '積極性', '明るさ', '礼儀正しさ', '清潔さ', '正確さ', '懸命さ', 
+      '柔軟性', 'ホスピタリティー', 'Comment'
+    ];
+    responsesSheet.appendRow(headers);
+    responsesSheet.setFrozenRows(1);
+    responsesSheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#f1f5f9');
+    
+    SpreadsheetApp.getUi().alert('成功', `新しいシート "${sheetName}" を作成しました。`, SpreadsheetApp.getUi().ButtonSet.OK);
+  } catch (e) {
+    SpreadsheetApp.getUi().alert('エラー', 'シートの作成中にエラーが発生しました: ' + e.message, SpreadsheetApp.getUi().ButtonSet.OK);
+  }
+}
+
+function getDashboardData() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    const responsesSheet = ss.getSheetByName('Evaluation_Responses');
+    if (!responsesSheet) return { error: '評価データがありません。' };
+    
+    const rData = responsesSheet.getDataRange().getValues();
+    if (rData.length <= 1) return { error: '評価データがありません。' };
+    
+    const rRows = rData.slice(1);
+    
+    // ヘッダーからインデックスを動的に取得する（旧データと新データの互換性のため）
+    const rHeaders = rData[0];
+    const targetMonthIdx = rHeaders.indexOf('Target_Month');
+    const hasTargetMonth = targetMonthIdx !== -1;
+    
+    const responses = rRows.map(row => {
+      const offset = hasTargetMonth ? 1 : 0;
+      return {
+        timestamp: row[0],
+        targetMonth: hasTargetMonth ? row[1] : '',
+        evaluatorId: row[1 + offset],
+        evaluateeId: row[2 + offset],
+        attributes: String(row[3 + offset]).split(',').map(s=>s.trim()).filter(s=>s),
+        scores: {
+          '協調性': Number(row[4 + offset]) || 0,
+          '素直さ': Number(row[5 + offset]) || 0,
+          '積極性': Number(row[6 + offset]) || 0,
+          '明るさ': Number(row[7 + offset]) || 0,
+          '礼儀正しさ': Number(row[8 + offset]) || 0,
+          '清潔さ': Number(row[9 + offset]) || 0,
+          '正確さ': Number(row[10 + offset]) || 0,
+          '懸命さ': Number(row[11 + offset]) || 0,
+          '柔軟性': Number(row[12 + offset]) || 0,
+          'ホスピタリティー': Number(row[13 + offset]) || 0
+        },
+        comment: row[14 + offset]
+      };
+    });
     
     const membersSheet = ss.getSheetByName('members') || ss.getSheetByName('member');
     const membersMap = {};
@@ -394,3 +443,185 @@ function updateMonthlySettings(data) {
     return { error: '設定更新中にエラー: ' + e.message };
   }
 }
+
+function updateMemberGoals(data) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const membersSheet = ss.getSheetByName('members') || ss.getSheetByName('member');
+    if (!membersSheet) return { error: 'Sheet "members" not found.' };
+
+    const membersData = membersSheet.getDataRange().getValues();
+    if (membersData.length <= 1) return { error: 'No member data.' };
+
+    const headers = membersData[0];
+    const squadNumIdx = headers.indexOf('squadNumber');
+    
+    // Ensure chigiri and monthly_goal headers exist
+    let chigiriIdx = headers.indexOf('chigiri');
+    if (chigiriIdx === -1) {
+      chigiriIdx = headers.length;
+      membersSheet.getRange(1, chigiriIdx + 1).setValue('chigiri');
+      headers.push('chigiri');
+    }
+    
+    let goalIdx = headers.indexOf('monthly_goal');
+    if (goalIdx === -1) {
+      goalIdx = headers.length;
+      membersSheet.getRange(1, goalIdx + 1).setValue('monthly_goal');
+      headers.push('monthly_goal');
+    }
+
+    let rowIndex = -1;
+    for (let i = 1; i < membersData.length; i++) {
+      if (String(membersData[i][squadNumIdx]).trim() === String(data.squadNumber).trim()) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return { error: 'Member not found.' };
+    }
+
+    if (data.chigiri !== undefined) {
+      membersSheet.getRange(rowIndex, chigiriIdx + 1).setValue(data.chigiri);
+    }
+    if (data.monthlyGoal !== undefined) {
+      membersSheet.getRange(rowIndex, goalIdx + 1).setValue(data.monthlyGoal);
+    }
+
+    return { success: true };
+  } catch (e) {
+    return { error: 'Error saving goals: ' + e.message };
+  }
+}
+
+function getDashboardRawData() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // 1. Setting (open/close period & Published_Month)
+    const settingsObj = {};
+    const settingsSheet = ss.getSheetByName('Setting') || ss.getSheetByName('Settings');
+    let publishedMonth = '';
+    
+    if (settingsSheet) {
+      const data = settingsSheet.getDataRange().getValues();
+      if (data.length >= 2) {
+        const headers = data[0];
+        const row = data[1];
+        headers.forEach((h, i) => {
+          if (h) {
+            settingsObj[String(h).trim()] = row[i];
+          }
+        });
+      }
+      
+      // Extract published month (Setting E2 by default if not found by header)
+      publishedMonth = String(settingsObj['publish_month'] || settingsObj['Published_Month'] || settingsSheet.getRange('E2').getValue() || '').trim();
+      
+      // Extract overall goal and reason
+      for (let i = 0; i < data.length; i++) {
+        if (data[i] && data[i][0]) {
+          const val = String(data[i][0]).trim();
+          if (val === '今月の目標') {
+             for(let j = i + 1; j < data.length; j++) {
+                if (data[j] && data[j][0] && String(data[j][0]).trim() !== '理由') {
+                   settingsObj['overall_goal'] = String(data[j][0]).trim();
+                   break;
+                }
+             }
+          } else if (val === '理由') {
+             for(let j = i + 1; j < data.length; j++) {
+                if (data[j] && data[j][0]) {
+                   settingsObj['overall_goal_reason'] = String(data[j][0]).trim();
+                   break;
+                }
+             }
+          }
+        }
+      }
+    }
+
+    // 2. Evaluation_Responses (Aggregate multiple sheets)
+    let evaluations = [];
+    const allSheets = ss.getSheets();
+    allSheets.forEach(sheet => {
+      const sName = sheet.getName();
+      if (sName.startsWith('Evaluation_Responses')) {
+        let sheetMonth = '';
+        if (sName === 'Evaluation_Responses') {
+           // Fallback for original sheet without month suffix
+           sheetMonth = '1900-01'; // Very old
+        } else {
+           sheetMonth = sName.replace('Evaluation_Responses_', '').trim();
+        }
+        
+        // If there's a publishedMonth constraint, filter it
+        if (!publishedMonth || sheetMonth <= publishedMonth) {
+          const sheetData = _sheetToObjects(sheet);
+          // Inject Target_Month from sheet name if it is not present or blank
+          sheetData.forEach(row => {
+             if (!row.Target_Month) {
+                row.Target_Month = sheetMonth === '1900-01' ? 'Unknown' : sheetMonth;
+             }
+          });
+          evaluations = evaluations.concat(sheetData);
+        }
+      }
+    });
+
+    // 2. members
+    let members = [];
+    const membersSheet = ss.getSheetByName('members') || ss.getSheetByName('member');
+    if (membersSheet) members = _sheetToObjects(membersSheet);
+
+    // 3. departments
+    let featuredDepartments = [];
+    const deptSheet = ss.getSheetByName('departments');
+    if (deptSheet) {
+      const departments = _sheetToObjects(deptSheet);
+      featuredDepartments = departments
+        .filter(d => d.feature === true || String(d.feature).toUpperCase() === 'TRUE')
+        .map(d => ({
+          id: String(d.id).trim(),
+          name: String(d.name || d.id).trim()
+        }));
+    }
+    
+
+
+    return {
+      success: true,
+      evaluations: evaluations,
+      members: members,
+      featuredDepartments: featuredDepartments,
+      settings: settingsObj
+    };
+      
+  } catch (error) {
+    return { error: error.toString() };
+  }
+}
+
+// Helper: _sheetToObjects
+function _sheetToObjects(sheet) {
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return [];
+
+  const headers = values[0];
+  const result = [];
+  
+  for (let i = 1; i < values.length; i++) {
+    const row = values[i];
+    const obj = {};
+    for (let j = 0; j < headers.length; j++) {
+      if (headers[j] && String(headers[j]).trim() !== '') {
+        obj[String(headers[j]).trim()] = row[j];
+      }
+    }
+    result.push(obj);
+  }
+  return result;
+}
+
