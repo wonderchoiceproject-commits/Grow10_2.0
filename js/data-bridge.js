@@ -3,23 +3,23 @@
 let currentChart = null;
 
 const dimensionMeta = {
-    '協調性': { icon: "👥", description: "自分だけという考えを持たず、仲間のために尽くせる人。" },
-    '素直さ': { icon: "❤️", description: "人の意見をよく聞き、常に反省し、自分自身を見つめられる人。" },
-    '積極性': { icon: "🚀", description: "原因を他人に求めず、できない理由をいうのではなく、どうしたらできるかを常に考える人。" },
-    '明るさ': { icon: "☀️", description: "仕事上明るい人。(好奇心旺盛、すぐ声がでる、動作が機敏、目が輝いている)" },
-    '礼儀正しさ': { icon: "🤝", description: "単に挨拶ができるだけでなく、気持ちのいい対応ができる人。" },
-    '清潔さ': { icon: "🧹", description: "自分本位でなく、他人からどう見えているかを意識し行動できる人。" },
-    '正確さ': { icon: "🎯", description: "決められたことは忠実に継続して守れる人。一つ一つのことがきっちりできる人。" },
-    '懸命さ': { icon: "🔥", description: "なんにでも一生懸命に取り組める人。適当な仕事をしない人。" },
-    '柔軟性': { icon: "🍃", description: "変化に対してやってみようと思える人。なんでも吸収しようとする人。" },
-    'ホスピタリティー': { icon: "😊", description: "関わった人に幸せを与えられる人。「お蔭様」、「お互い様」という気持ちの持てる人。" }
+    '協調性': { icon: "", description: "自分だけという考えを持たず、仲間のために尽くせる人。" },
+    '素直さ': { icon: "", description: "人の意見をよく聞き、常に反省し、自分自身を見つめられる人。" },
+    '積極性': { icon: "", description: "原因を他人に入り交ぜず、できない理由を言うのではなく、どうしたらできるかを常に考える人。" },
+    '明るさ': { icon: "", description: "仕事上明るい人。(好奇心旺盛、すぐ声が出る、動作が機敏、目が輝いている)" },
+    '礼儀正しさ': { icon: "", description: "単に挨拶ができるだけでなく、気持ちのいい対応ができる人。" },
+    '清潔さ': { icon: "", description: "自分本位でなく、他人からどう見えているかを意識し行動できる人。" },
+    '正確さ': { icon: "", description: "決められたことは忠実に継続して守れる人。一つ一つのことがきっちりできる人。" },
+    '懸命さ': { icon: "", description: "なんにでも一生懸命に取り組める人。妥協な仕事をしない人。" },
+    '柔軟性': { icon: "", description: "変化に対してやってみようと思える人。なんでも吸収しようとする人。" },
+    'ホスピタリティー': { icon: "", description: "関わった人に幸せを与えられる人。「お客様」「お互い様」という気持ちの持てる人。" }
 };
 
 let calculatedGrowData = {};
 let globalEvaluations = [];
 let globalMemberMap = {};
 let availableMonths = [];
-let currentGlobalMonth = 'all';
+let currentGlobalMonth = '';
 
 document.addEventListener('gasDataLoaded', (e) => {
     const apiData = e.detail;
@@ -62,7 +62,7 @@ document.addEventListener('gasDataLoaded', (e) => {
     // Populate global month selector
     const globalMonthSelect = document.getElementById('globalMonthSelector');
     if (globalMonthSelect) {
-        globalMonthSelect.innerHTML = '<option value="all">全期間 (All)</option>';
+        globalMonthSelect.innerHTML = '';
         availableMonths.forEach(m => {
             const opt = document.createElement('option');
             opt.value = m;
@@ -74,7 +74,7 @@ document.addEventListener('gasDataLoaded', (e) => {
     // Populate dist month select
     const distMonthSelect = document.getElementById('sc-dist-month-select');
     if (distMonthSelect) {
-        distMonthSelect.innerHTML = ''; // 全期間(All)を削除
+        distMonthSelect.innerHTML = '';
         availableMonths.forEach(m => {
             const opt = document.createElement('option');
             opt.value = m;
@@ -102,7 +102,7 @@ document.addEventListener('gasDataLoaded', (e) => {
             cb.className = 'radar-month-cb';
             // Default check the first (newest) two months, or all if less than 2
             if (idx < 2) cb.checked = true;
-            cb.onchange = () => { if(typeof scSelectedUserId !== 'undefined' && scSelectedUserId) renderScorecard(scSelectedUserId); };
+            cb.onchange = () => { if(window.scSelectedUserId) renderScorecard(window.scSelectedUserId); };
             
             label.appendChild(cb);
             label.appendChild(document.createTextNode(m));
@@ -151,7 +151,6 @@ document.addEventListener('gasDataLoaded', (e) => {
                 chigiriText.style.fontSize = '0.85rem';
                 chigiriText.style.lineHeight = '1.4';
                 chigiriText.style.whiteSpace = 'pre-wrap';
-                // HTML tags should be escaped, innerText does that
                 chigiriText.innerText = m.chigiri;
 
                 card.appendChild(header);
@@ -162,12 +161,22 @@ document.addEventListener('gasDataLoaded', (e) => {
     }
 
     // 初期計算
-    recalculateGlobalStats('all');
+    let defaultMonth = '';
+    if (availableMonths.length > 0) {
+        defaultMonth = availableMonths[0];
+        currentGlobalMonth = defaultMonth;
+        if (globalMonthSelect) {
+            globalMonthSelect.value = defaultMonth;
+        }
+    }
+    recalculateGlobalStats(defaultMonth);
+    window.dispatchEvent(new CustomEvent('globalMonthChanged', { detail: defaultMonth }));
 
     // Generate menu buttons for "by-items" tab
     const selectorGrid = document.getElementById('dim-selector-grid');
     if (selectorGrid) {
         selectorGrid.innerHTML = '';
+        const topics = Object.keys(dimensionMeta);
         topics.forEach(topic => {
             const btn = document.createElement('button');
             btn.className = 'dim-btn';
@@ -193,7 +202,8 @@ document.addEventListener('gasDataLoaded', (e) => {
     }
 
     // Default render if on by-items tab
-    if (document.getElementById('tab-by-items').classList.contains('active')) {
+    const tabByItems = document.getElementById('tab-by-items');
+    if (tabByItems && tabByItems.style.display !== 'none') {
         renderByItemsTab('協調性');
     }
 });
@@ -204,12 +214,13 @@ window.onGlobalMonthChange = function() {
         currentGlobalMonth = selector.value;
         recalculateGlobalStats(currentGlobalMonth);
         
+        window.dispatchEvent(new CustomEvent('globalMonthChanged', { detail: currentGlobalMonth }));
+        
         // Refresh currently selected topic if in by-items tab
         const activeTopicBtn = document.querySelector('.dim-btn[style*="color: rgb(255, 255, 255)"]');
         let currentTopic = '協調性';
         if (activeTopicBtn) {
             currentTopic = activeTopicBtn.innerText.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|\s/g, '').trim(); // Remove icon
-            // Make sure the topic actually matches the keys
             const validTopic = Object.keys(dimensionMeta).find(k => activeTopicBtn.innerText.includes(k));
             if(validTopic) currentTopic = validTopic;
         }
@@ -249,10 +260,10 @@ function recalculateGlobalStats(monthFilter) {
         const totalUsers = scores.length;
         const average = totalUsers > 0 ? scores.reduce((a, b) => a + b, 0) / totalUsers : 0;
         
-        // Distribution 1 to 10
-        const distribution = Array(10).fill(0);
+        // Distribution 0 to 10
+        const distribution = Array(11).fill(0);
         scores.forEach(s => {
-            const bucket = Math.min(Math.max(Math.floor(s) - 1, 0), 9);
+            const bucket = Math.min(Math.max(Math.floor(s), 0), 10);
             distribution[bucket]++;
         });
 
@@ -278,7 +289,7 @@ window.renderByItemsTab = function(topic) {
     const data = calculatedGrowData[topic];
 
     const badge = document.getElementById('itemBadge');
-    if(badge) badge.innerText = `GROW10 - 指針 ⑩-${data.id}`;
+    if(badge) badge.innerText = `GROW10 - 項目 ${data.id}`;
     
     const title = document.getElementById('itemTitle');
     if(title) title.innerText = data.name;
@@ -304,7 +315,7 @@ window.renderByItemsTab = function(topic) {
             else if (rankNum === 3) { rankColor = '#d97706'; rankTextColor = '#1e293b'; }
 
             const rankBadge = `<div style="width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 13px; background-color: ${rankColor}; color: ${rankTextColor};">${rankNum}</div>`;
-            rankingBody.innerHTML += `<tr><td style="padding: 14px 12px; border-bottom: 1px solid #334155;">${rankBadge}</td><td style="padding: 14px 12px; border-bottom: 1px solid #334155; color: #f8fafc;">${user.name}</td><td style="padding: 14px 12px; border-bottom: 1px solid #334155; text-align: right; font-weight: bold; color: #38bdf8;">${user.score.toFixed(1)}</td></tr>`;
+            rankingBody.innerHTML += `<tr><td style="padding: 14px 12px; border-bottom: 1px solid #e2e8f0;">${rankBadge}</td><td style="padding: 14px 12px; border-bottom: 1px solid #e2e8f0; color: #0a2540;">${user.name}</td><td style="padding: 14px 12px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold; color: #447fe0;">${user.score.toFixed(1)}</td></tr>`;
         });
     }
 
@@ -314,7 +325,7 @@ window.renderByItemsTab = function(topic) {
         currentChart = new Chart(ctx.getContext('2d'), {
             type: 'bar',
             data: {
-                labels: ['1点', '2点', '3点', '4点', '5点', '6点', '7点', '8点', '9点', '10点'],
+                labels: ['0点', '1点', '2点', '3点', '4点', '5点', '6点', '7点', '8点', '9点', '10点'],
                 datasets: [{ 
                     data: data.distribution, 
                     backgroundColor: '#38bdf8', 
@@ -327,8 +338,8 @@ window.renderByItemsTab = function(topic) {
                 maintainAspectRatio: false, 
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
-                    x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+                    y: { ticks: { color: '#64748b' }, grid: { color: '#e2e8f0' } },
+                    x: { ticks: { color: '#64748b' }, grid: { display: false } }
                 }
             }
         });
@@ -340,42 +351,19 @@ let scRadar = null;
 let scDist = null;
 let scTrend = null;
 
-let scSelectedUserId = null;
-let scOverallAverages = {};
+window.scSelectedUserId = null;
 
 document.addEventListener('gasDataLoaded', (e) => {
     const apiData = e.detail;
     const { evaluations = [], members = [] } = apiData;
 
-    // Calculate overall averages for all dimensions
-    const topics = Object.keys(dimensionMeta);
-    const overallCounts = {};
-    topics.forEach(t => { scOverallAverages[t] = 0; overallCounts[t] = 0; });
-    let totalScoreSum = 0;
-    let totalScoreCount = 0;
 
-    evaluations.forEach(row => {
-        topics.forEach(t => {
-            const val = Number(row[t]);
-            if (!isNaN(val)) {
-                scOverallAverages[t] += val;
-                overallCounts[t]++;
-                totalScoreSum += val;
-                totalScoreCount++;
-            }
-        });
-    });
-
-    topics.forEach(t => {
-        if (overallCounts[t] > 0) scOverallAverages[t] /= overallCounts[t];
-    });
-    scOverallAverages['総合'] = totalScoreCount > 0 ? (totalScoreSum / totalScoreCount) : 0;
 
     // Populate dropdown
     const select = document.getElementById('scorecard-member-select');
     if (select) {
         select.innerHTML = '';
-        const allowedCategories = ['member', 'assistant', 'chief', 'core'];
+        const allowedCategories = ['member', 'assistant', 'chief', 'core', 'admin', 'beginner'];
         const filteredMembers = members.filter(m => {
             const cat = String(m.category || '').toLowerCase().trim();
             return allowedCategories.includes(cat);
@@ -396,9 +384,9 @@ document.addEventListener('gasDataLoaded', (e) => {
             if (currentUser && filteredMembers.some(m => String(m.squadNumber) === String(currentUser.id))) {
                 initialUser = currentUser.id;
             }
-            scSelectedUserId = initialUser;
-            select.value = scSelectedUserId;
-            renderScorecard(scSelectedUserId);
+            window.scSelectedUserId = initialUser;
+            select.value = window.scSelectedUserId;
+            renderScorecard(window.scSelectedUserId);
         }
     }
 });
@@ -406,8 +394,8 @@ document.addEventListener('gasDataLoaded', (e) => {
 window.onScorecardMemberChange = function() {
     const select = document.getElementById('scorecard-member-select');
     if (select) {
-        scSelectedUserId = select.value;
-        renderScorecard(scSelectedUserId);
+        window.scSelectedUserId = select.value;
+        renderScorecard(window.scSelectedUserId);
     }
 };
 
@@ -434,6 +422,33 @@ window.renderScorecard = function(userId) {
     // For Radar Chart
     const radarDataByMonth = {};
     const selectedRadarMonths = Array.from(document.querySelectorAll('.radar-month-cb:checked')).map(cb => cb.value);
+
+    // Calculate global average for the selected radar months
+    const scOverallAverages = {};
+    const overallCounts = {};
+    topics.forEach(t => { scOverallAverages[t] = 0; overallCounts[t] = 0; });
+    let totalScoreSum = 0;
+    let totalScoreCount = 0;
+
+    evaluations.forEach(row => {
+        const month = row.Target_Month || 'Unknown';
+        if (selectedRadarMonths.includes(month)) {
+            topics.forEach(t => {
+                const val = Number(row[t]);
+                if (!isNaN(val)) {
+                    scOverallAverages[t] += val;
+                    overallCounts[t]++;
+                    totalScoreSum += val;
+                    totalScoreCount++;
+                }
+            });
+        }
+    });
+
+    topics.forEach(t => {
+        if (overallCounts[t] > 0) scOverallAverages[t] /= overallCounts[t];
+    });
+    scOverallAverages['総合'] = totalScoreCount > 0 ? (totalScoreSum / totalScoreCount) : 0;
 
     userEvals.forEach(row => {
         const month = row.Target_Month || 'Unknown';
@@ -518,14 +533,14 @@ window.renderScorecard = function(userId) {
                 scales: {
                     r: {
                         min: 0, max: 10,
-                        angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
-                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        pointLabels: { color: '#f8fafc', font: { size: 12 } },
+                        angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+                        pointLabels: { color: '#0a2540', font: { size: 12 } },
                         ticks: { display: false }
                     }
                 },
                 plugins: {
-                    legend: { position: 'bottom', labels: { color: '#f8fafc' } }
+                    legend: { position: 'bottom', labels: { color: '#4b5563' } }
                 }
             }
         });
@@ -566,7 +581,7 @@ window.renderScorecard = function(userId) {
             tbody.innerHTML += `
                 <tr style="border-bottom: 1px solid #cbd5e1;">
                   <td style="padding: 12px 24px; border-right: 1px solid #cbd5e1; font-weight: bold;">${t}</td>
-                  <td style="padding: 12px 24px; border-right: 1px solid #cbd5e1; font-size: 1.2rem; font-weight: bold; color: #0284c7;">${uAvg.toFixed(2)}</td>
+                  <td style="padding: 12px 24px; border-right: 1px solid #cbd5e1; font-size: 1.2rem; font-weight: bold; color: #447fe0;">${uAvg.toFixed(2)}</td>
                   <td style="padding: 12px 24px; font-weight: bold; color: ${diffColor};">${diffSign}${diff.toFixed(2)}</td>
                 </tr>
             `;
@@ -585,11 +600,11 @@ window.renderScorecard = function(userId) {
                 totalScoreEl.innerText = overallUAvg.toFixed(1);
             }
 
-            // Add "総合" as the top row (or bottom row, prepending it to be prominent)
+            // Add "総合評価" as the top row
             const overallHtml = `
-                <tr style="border-bottom: 2px solid #38bdf8; background: rgba(56, 189, 248, 0.05);">
-                  <td style="padding: 14px 24px; border-right: 1px solid #cbd5e1; font-weight: 800; color: #38bdf8; font-size: 1.1rem;">★ 総合評価</td>
-                  <td style="padding: 14px 24px; border-right: 1px solid #cbd5e1; font-size: 1.3rem; font-weight: 900; color: #0284c7;">${overallUAvg.toFixed(2)}</td>
+                <tr style="border-bottom: 2px solid #447fe0; background: rgba(68, 127, 224, 0.05);">
+                  <td style="padding: 14px 24px; border-right: 1px solid #cbd5e1; font-weight: 800; color: #447fe0; font-size: 1.1rem;">★ 総合評価</td>
+                  <td style="padding: 14px 24px; border-right: 1px solid #cbd5e1; font-size: 1.3rem; font-weight: 900; color: #447fe0;">${overallUAvg.toFixed(2)}</td>
                   <td style="padding: 14px 24px; font-weight: 900; font-size: 1.1rem; color: ${overallDiffColor};">${overallDiffSign}${overallDiff.toFixed(2)}</td>
                 </tr>
             `;
@@ -601,15 +616,15 @@ window.renderScorecard = function(userId) {
     const ctxDist = document.getElementById('scChartDist');
     if (ctxDist) {
         if (scDist) scDist.destroy();
-        const dist = Array(10).fill(0);
+        const dist = Array(11).fill(0);
         allUserScores.forEach(s => {
-            const bucket = Math.min(Math.max(Math.floor(s) - 1, 0), 9);
+            const bucket = Math.min(Math.max(Math.floor(s), 0), 10);
             dist[bucket]++;
         });
         scDist = new Chart(ctxDist.getContext('2d'), {
             type: 'bar',
             data: {
-                labels: ['1点', '2点', '3点', '4点', '5点', '6点', '7点', '8点', '9点', '10点'],
+                labels: ['0点', '1点', '2点', '3点', '4点', '5点', '6点', '7点', '8点', '9点', '10点'],
                 datasets: [{ 
                     data: dist, 
                     backgroundColor: '#60a5fa', 
@@ -620,7 +635,7 @@ window.renderScorecard = function(userId) {
                 responsive: true, maintainAspectRatio: false, 
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { grid: { color: '#1e293b' }, ticks: { color: '#64748b' } },
+                    y: { grid: { color: '#e2e8f0' }, ticks: { color: '#64748b' } },
                     x: { grid: { display: false }, ticks: { color: '#64748b' } }
                 }
             }
@@ -654,7 +669,7 @@ window.renderScorecard = function(userId) {
                 responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { min: 0, max: 10, grid: { color: '#1e293b' }, ticks: { color: '#64748b' } },
+                    y: { min: 0, max: 10, grid: { color: '#e2e8f0' }, ticks: { color: '#64748b' } },
                     x: { grid: { display: false }, ticks: { color: '#64748b' } }
                 }
             }
@@ -663,7 +678,7 @@ window.renderScorecard = function(userId) {
 };
 
 window.onScorecardDistTopicChange = function() {
-    if (scSelectedUserId) {
-        renderScorecard(scSelectedUserId);
+    if (window.scSelectedUserId) {
+        renderScorecard(window.scSelectedUserId);
     }
 };
