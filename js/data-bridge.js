@@ -2,6 +2,7 @@
 
 let currentChart = null;
 
+
 const dimensionMeta = {
     '協調性': { icon: "", description: "自分だけという考えを持たず、仲間のために尽くせる人。" },
     '素直さ': { icon: "", description: "人の意見をよく聞き、常に反省し、自分自身を見つめられる人。" },
@@ -92,7 +93,7 @@ document.addEventListener('gasDataLoaded', (e) => {
             label.style.display = 'flex';
             label.style.alignItems = 'center';
             label.style.gap = '6px';
-            label.style.color = '#f8fafc';
+            label.style.color = 'var(--text-secondary)';
             label.style.fontSize = '0.8rem';
             label.style.cursor = 'pointer';
             
@@ -126,8 +127,8 @@ document.addEventListener('gasDataLoaded', (e) => {
         } else {
             membersWithChigiri.forEach(m => {
                 const card = document.createElement('div');
-                card.style.background = 'rgba(255, 255, 255, 0.03)';
-                card.style.border = '1px solid rgba(255, 255, 255, 0.08)';
+                card.style.background = '#f8fafc';
+                card.style.border = '1px solid #e2e8f0';
                 card.style.borderRadius = '8px';
                 card.style.padding = '10px 12px';
                 card.style.marginBottom = '6px';
@@ -147,7 +148,8 @@ document.addEventListener('gasDataLoaded', (e) => {
                 header.appendChild(nameStr);
                 
                 const chigiriText = document.createElement('div');
-                chigiriText.style.color = 'var(--accent-amber)';
+                chigiriText.style.color = 'var(--text-primary)';
+                chigiriText.style.fontWeight = '600';
                 chigiriText.style.fontSize = '0.85rem';
                 chigiriText.style.lineHeight = '1.4';
                 chigiriText.style.whiteSpace = 'pre-wrap';
@@ -347,9 +349,10 @@ window.renderByItemsTab = function(topic) {
 }
 
 // ====== SCORECARD LOGIC ======
-let scRadar = null;
-let scDist = null;
-let scTrend = null;
+window.scRadar = null;
+window.scDist = null;
+window.scTrend = null;
+
 
 window.scSelectedUserId = null;
 
@@ -521,8 +524,8 @@ window.renderScorecard = function(userId) {
     // Radar Chart
     const ctxRadar = document.getElementById('scChartRadar');
     if (ctxRadar) {
-        if (scRadar) scRadar.destroy();
-        scRadar = new Chart(ctxRadar.getContext('2d'), {
+        if (window.scRadar) window.scRadar.destroy();
+        window.scRadar = new Chart(ctxRadar.getContext('2d'), {
             type: 'radar',
             data: {
                 labels: topics,
@@ -549,6 +552,11 @@ window.renderScorecard = function(userId) {
     // Update Header
     document.getElementById('sc-user-name').innerText = member.name;
     document.getElementById('sc-user-id').innerText = member.squadNumber;
+    
+    const scUserChigiri = document.getElementById('sc-user-chigiri');
+    if (scUserChigiri) {
+        scUserChigiri.innerText = member.chigiri || 'まだ契りが立てられていません。';
+    }
     
     // Update Table
     const tbody = document.getElementById('sc-details-tbody');
@@ -681,4 +689,115 @@ window.onScorecardDistTopicChange = function() {
     if (window.scSelectedUserId) {
         renderScorecard(window.scSelectedUserId);
     }
+};
+
+// スコアカードのサブタブ切り替え処理
+window.switchScorecardSubtab = function(subtab) {
+    const panes = document.querySelectorAll('.sc-content-pane');
+    panes.forEach(pane => {
+        pane.style.display = 'none';
+        pane.classList.remove('active');
+    });
+    
+    const activePane = document.getElementById(`sc-content-${subtab}`);
+    if (activePane) {
+        activePane.style.display = 'block';
+        activePane.classList.add('active');
+    }
+    
+    const buttons = document.querySelectorAll('.sc-submenu-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    const activeBtn = document.getElementById(`sc-nav-${subtab}`);
+    if (activeBtn) activeBtn.classList.add('active');
+    
+    // グラフの再描画 (非表示から表示への切り替え時に描画崩れを防ぐ)
+    if (subtab === 'radar' && window.scRadar) {
+        window.scRadar.resize();
+        window.scRadar.update();
+    } else if (subtab === 'dist' && window.scDist) {
+        window.scDist.resize();
+        window.scDist.update();
+    } else if (subtab === 'trend' && window.scTrend) {
+        window.scTrend.resize();
+        window.scTrend.update();
+    }
+};
+
+// 契りモーダル操作用関数
+window.openChigiriModal = function(show) {
+    const modal = document.getElementById('chigiri-modal');
+    if (modal) {
+        if (show) {
+            modal.classList.add('open');
+            modal.style.display = 'flex';
+            // 現在の自分の契りを初期値としてセット
+            const userStr = sessionStorage.getItem('grow10_current_user');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                if (window.globalApiData && window.globalApiData.members) {
+                    const member = window.globalApiData.members.find(m => String(m.squadNumber) === String(user.id));
+                    const input = document.getElementById('chigiri-input');
+                    if (member && input) {
+                        input.value = member.chigiri || '';
+                    }
+                }
+            }
+        } else {
+            modal.classList.remove('open');
+            modal.style.display = 'none';
+        }
+    }
+};
+
+window.submitChigiri = async function() {
+    const userStr = sessionStorage.getItem('grow10_current_user');
+    if (!userStr) return;
+    const user = JSON.parse(userStr);
+    
+    const input = document.getElementById('chigiri-input');
+    if (!input) return;
+    
+    const chigiriText = input.value.trim();
+    if (!chigiriText) {
+        alert('今日の契りを入力してください。');
+        return;
+    }
+    
+    try {
+        const { error } = await supabaseClient
+            .from('members')
+            .update({ chigiri: chigiriText })
+            .eq('squad_number', user.id);
+            
+        if (error) throw error;
+        
+        // ローカルキャッシュの更新
+        if (window.globalApiData && window.globalApiData.members) {
+            const member = window.globalApiData.members.find(m => String(m.squadNumber) === String(user.id));
+            if (member) member.chigiri = chigiriText;
+        }
+        
+        // ダッシュボードの表示更新
+        const curChigiri = document.getElementById('current-chigiri-text');
+        if (curChigiri) curChigiri.innerText = chigiriText;
+        
+        const scUserChigiri = document.getElementById('sc-user-chigiri');
+        if (scUserChigiri) scUserChigiri.innerText = chigiriText;
+        
+        // メンバー全員の契りフィードも再読み込み
+        if (typeof window.dispatchEvent === 'function') {
+            window.dispatchEvent(new CustomEvent('gasDataLoaded', { detail: window.globalApiData }));
+        }
+        
+        showToast('契りを保存しました！');
+        window.openChigiriModal(false);
+    } catch (e) {
+        console.error('Failed to save chigiri', e);
+        alert('契りの保存に失敗しました。');
+    }
+};
+
+window.skipChigiri = function() {
+    window.openChigiriModal(false);
 };

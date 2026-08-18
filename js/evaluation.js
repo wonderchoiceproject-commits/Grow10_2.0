@@ -26,14 +26,53 @@ async function initEvaluationTab(evaluatorId) {
     const errorEl = document.getElementById('formError');
     if(errorEl) errorEl.textContent = '';
     
-    // データがない場合は一度非表示に
     const container = document.getElementById('evaluateesContainer');
     if(container) container.innerHTML = '<div style="text-align:center; padding: 40px; color:#64748b;">対象者を取得中...</div>';
     document.getElementById('evaluationForm').style.display = 'block';
     document.getElementById('successSection').style.display = 'none';
+    document.getElementById('submitBtn').style.display = 'block';
 
     try {
         if (!window.supabaseClient) throw new Error('Supabaseが初期化されていません。');
+
+        // 最新の評価期間(open, close)をSupabaseから直接取得して検証
+        const { data: periodSettings } = await window.supabaseClient.from('settings').select('*');
+        if (periodSettings) {
+            const openRow = periodSettings.find(row => row.key === 'open');
+            const closeRow = periodSettings.find(row => row.key === 'close');
+            
+            const toDateVal = (val) => {
+                if (!val) return '';
+                const cleaned = String(val).replace(/[年月]/g, '-').replace(/\//g, '-').replace(/日/g, '').trim();
+                const match = cleaned.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+                return match ? `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}` : '';
+            };
+            
+            const openDate = openRow ? toDateVal(openRow.value) : '';
+            const closeDate = closeRow ? toDateVal(closeRow.value) : '';
+            
+            if (openDate && closeDate) {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const todayStr = `${year}-${month}-${day}`;
+                
+                if (todayStr < openDate || todayStr > closeDate) {
+                    if (container) {
+                        container.innerHTML = `
+                            <div style="text-align:center; padding: 40px 20px; color:#ef4444; font-weight:bold; font-size:1.15rem; border: 1px dashed #fca5a5; border-radius: 12px; background: #fef2f2; max-width: 500px; margin: 20px auto;">
+                              現在は評価期間外です。<br>
+                              <span style="font-size:0.9rem; font-weight:normal; color:#475569; margin-top:8px; display:inline-block;">評価可能期間： ${openDate} 〜 ${closeDate}</span>
+                            </div>
+                        `;
+                    }
+                    const submitBtn = document.getElementById('submitBtn');
+                    if (submitBtn) submitBtn.style.display = 'none';
+                    return;
+                }
+            }
+        }
 
         const { data: deptData, error: deptErr } = await window.supabaseClient.from('departments').select('*');
         if (deptErr) throw deptErr;
@@ -397,6 +436,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 const userStr = sessionStorage.getItem('grow10_current_user');
                 if(!userStr) throw new Error("ログインしていません");
                 const user = JSON.parse(userStr);
+
+                // 送信時にも評価期間を再チェック
+                const { data: periodCheck } = await window.supabaseClient.from('settings').select('*');
+                if (periodCheck) {
+                    const openRow = periodCheck.find(row => row.key === 'open');
+                    const closeRow = periodCheck.find(row => row.key === 'close');
+                    const toDateVal = (val) => {
+                        if (!val) return '';
+                        const cleaned = String(val).replace(/[年月]/g, '-').replace(/\//g, '-').replace(/日/g, '').trim();
+                        const match = cleaned.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+                        return match ? `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}` : '';
+                    };
+                    const openDate = openRow ? toDateVal(openRow.value) : '';
+                    const closeDate = closeRow ? toDateVal(closeRow.value) : '';
+                    if (openDate && closeDate) {
+                        const today = new Date();
+                        const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+                        if (todayStr < openDate || todayStr > closeDate) {
+                            throw new Error(`現在は評価期間外です（評価可能期間: ${openDate} 〜 ${closeDate}）`);
+                        }
+                    }
+                }
 
                 const { data: settingsData, error: settingsErr } = await window.supabaseClient.from('settings').select('*');
                 let targetMonth = '';

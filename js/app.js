@@ -220,9 +220,6 @@ function renderMainAdminMembers() {
               <option value="beginner" ${cat === 'beginner' ? 'selected' : ''}>Beginner</option>
               <option value="member" ${cat === 'member' ? 'selected' : ''}>Member</option>
               <option value="admin" ${cat === 'admin' ? 'selected' : ''}>Admin</option>
-              <option value="chief" ${cat === 'chief' ? 'selected' : ''}>Chief</option>
-              <option value="core" ${cat === 'core' ? 'selected' : ''}>Core</option>
-              <option value="assistant" ${cat === 'assistant' ? 'selected' : ''}>Assistant</option>
             </select>
           </td>
           <td style="padding: 12px; position: relative;">
@@ -622,12 +619,26 @@ function renderGrow10Settings() {
     const openInput = document.getElementById('settings-open-date');
     const closeInput = document.getElementById('settings-close-date');
 
+    const toMonthVal = (val) => {
+        if (!val) return '';
+        const cleaned = String(val).replace(/[年月]/g, '-').replace(/\//g, '-').trim();
+        const match = cleaned.match(/^(\d{4})-(\d{1,2})/);
+        return match ? `${match[1]}-${match[2].padStart(2, '0')}` : '';
+    };
+
+    const toDateVal = (val) => {
+        if (!val) return '';
+        const cleaned = String(val).replace(/[年月]/g, '-').replace(/\//g, '-').replace(/日/g, '').trim();
+        const match = cleaned.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+        return match ? `${match[1]}-${match[2].padStart(2, '0')}-${match[3].padStart(2, '0')}` : '';
+    };
+
     if (goalInput) goalInput.value = settings['overall_goal'] || '';
     if (reasonInput) reasonInput.value = settings['overall_goal_reason'] || '';
-    if (publishInput) publishInput.value = settings['publish_month'] || settings['Publish_Month'] || '';
-    if (currentInput) currentInput.value = settings['Current_Month'] || '';
-    if (openInput) openInput.value = settings['open'] || '';
-    if (closeInput) closeInput.value = settings['close'] || '';
+    if (publishInput) publishInput.value = toMonthVal(settings['publish_month'] || settings['Publish_Month']);
+    if (currentInput) currentInput.value = toMonthVal(settings['Current_Month']);
+    if (openInput) openInput.value = toDateVal(settings['open']);
+    if (closeInput) closeInput.value = toDateVal(settings['close']);
 }
 
 async function saveGrow10Settings() {
@@ -696,7 +707,7 @@ function openUserSwitcherModal(isForced = false) {
     } else {
         el.dataset.forced = 'false';
         if (closeBtn) closeBtn.style.display = 'flex';
-        document.querySelector('#user-switcher-modal .modal-title').innerText = '🔄 ユーザー切り替え';
+        document.querySelector('#user-switcher-modal .modal-title').innerText = 'ユーザー切り替え';
     }
     el.style.display = 'flex';
 }
@@ -865,6 +876,11 @@ function renderDashboardGoals(user) {
         checkboxes.forEach(cb => {
             cb.checked = chigiriArr.includes(cb.value);
         });
+        
+        const chigiriText = document.getElementById('current-chigiri-text');
+        if (chigiriText) {
+            chigiriText.innerText = member.chigiri || 'まだ契りが立てられていません。';
+        }
     }
 }
 

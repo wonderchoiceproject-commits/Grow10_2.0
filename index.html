@@ -48,9 +48,11 @@
 
   <!-- Sidebar Navigation -->
   <aside>
-    <div class="brand">
-      <div class="brand-dot"></div>
-      <span>GROW10 Dashboard</span>
+    <div class="brand" style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; border-bottom: 1px solid #f1f5f9; background: transparent;">
+      <img src="images/rogo.jpg" alt="Grow10 Logo" style="width: 28px; height: 28px; object-fit: contain; border-radius: 6px;">
+      <span style="font-weight: 800; font-size: 1.15rem; color: #0f172a; tracking-wider; font-family: 'Inter', sans-serif;">
+        Grow<span style="color: #2563eb;">10</span>
+      </span>
     </div>
     <ul class="nav-links">
       <li class="nav-item active" id="nav-dashboard">
@@ -132,9 +134,9 @@
           <!-- Team Goal -->
           <div class="overall-goal-banner team-goal">
             <div class="banner-content">
-              <div class="banner-title" style="color: #93c5fd;">団体目標</div>
+              <div class="banner-title" style="color: #bfdbfe; font-weight: 700;">団体目標</div>
               <div class="banner-text" id="overall-goal-title" style="font-size: 1.25rem; margin-bottom: 10px; color: #ffffff;">「協調性」の全体平均を3.5以上にする</div>
-              <div style="font-size: 0.9rem; color: #f1f5f9; background: rgba(255,255,255,0.1); padding: 10px 14px; border-radius: 6px; border-left: 3px solid #ffda1b; line-height: 1.5;">
+              <div style="font-size: 0.9rem; color: #ffffff; background: rgba(0, 0, 0, 0.25); padding: 10px 14px; border-radius: 6px; border-left: 3px solid #ffda1b; line-height: 1.5;">
                 <strong>目標の理由:</strong><br>
                 <span id="overall-goal-reason">先月のアンケートで「チーム間の連携不足」が課題として浮き彫りになったため。全員でコミュニケーションを増やし、助け合う風土を作ります。</span>
               </div>
@@ -145,7 +147,7 @@
           <div class="overall-goal-banner personal-goal">
             <div class="banner-content" style="width: 100%;">
               <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div class="banner-title" style="color: #6ee7b7;">個人目標</div>
+                <div class="banner-title" style="color: #a7f3d0; font-weight: 700;">個人目標</div>
                 <button class="btn-secondary" style="padding: 4px 12px; font-size: 0.8rem; color: #ffffff; border-color: rgba(255,255,255,0.4); background: rgba(255,255,255,0.15);" onclick="togglePersonalGoalEdit()">編集</button>
               </div>
               
@@ -183,14 +185,14 @@
             
             <!-- Chigiri (Pledge) Display Card -->
             <div class="card chigiri-display-card">
-              <h2 class="card-title" style="color: var(--accent-amber);">契り (Chigiri)</h2>
+              <h2 class="card-title" style="color: #d97706;">契り</h2>
               <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
                 あなたが今日、全力を尽くすと誓った行動です。
               </p>
               <div class="chigiri-content" id="current-chigiri-text">
                 まだ契りが立てられていません。
               </div>
-              <button class="btn-secondary" style="width: 100%; margin-top: 1rem; border-color: var(--accent-amber); color: var(--accent-amber);" onclick="openChigiriModal(true)">
+              <button class="btn-secondary" style="width: 100%; margin-top: 1rem; border-color: #d97706; color: #d97706;" onclick="openChigiriModal(true)">
                 契りを更新する
               </button>
             </div>
@@ -523,22 +525,22 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
               <div>
                 <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">公開月</label>
-                <input type="text" id="settings-publish-month" placeholder="例: 2026-07" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
+                <input type="month" id="settings-publish-month" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
               </div>
               <div>
                 <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">対象月</label>
-                <input type="text" id="settings-current-month" placeholder="例: 2026-08" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
+                <input type="month" id="settings-current-month" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
               <div>
                 <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">評価開始日</label>
-                <input type="text" id="settings-open-date" placeholder="例: 2026-08-13" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
+                <input type="date" id="settings-open-date" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
               </div>
               <div>
                 <label style="display: block; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 6px;">評価締切日</label>
-                <input type="text" id="settings-close-date" placeholder="例: 2026-08-14" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
+                <input type="date" id="settings-close-date" style="width: 100%; padding: 10px 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
               </div>
             </div>
 
@@ -566,21 +568,29 @@
   </div>
 
   <!-- 2. User Switcher Modal (Login Simulation) -->
-  <div id="user-switcher-modal" class="modal-overlay" onclick="closeModalOnOverlay(event, 'user-switcher-modal')">
-    <div class="modal-content" style="max-width: 400px;">
-      <div class="modal-header">
-        <h3 class="modal-title">ユーザー切り替え / ログイン</h3>
-        <button id="user-switcher-close-btn" class="close-btn" onclick="closeModal('user-switcher-modal')">&times;</button>
+  <div id="user-switcher-modal" class="modal-overlay login-overlay" onclick="closeModalOnOverlay(event, 'user-switcher-modal')">
+    <div class="modal-content" style="max-width: 400px; border: none; box-shadow: none; background: #ffffff; padding: 24px;">
+      <div class="modal-header" style="border-bottom: none; padding-bottom: 0; position: relative;">
+        <h3 class="modal-title" style="display: none;">ユーザー切り替え / ログイン</h3>
+        <button id="user-switcher-close-btn" class="close-btn" onclick="closeModal('user-switcher-modal')" style="position: absolute; right: 8px; top: 0px; z-index: 10;">&times;</button>
       </div>
-      <div class="modal-body">
-        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
-          背番号を入力してください。
+      <div style="text-align: center; margin-top: 1.5rem; margin-bottom: 1.5rem;">
+        <div style="display: inline-flex; align-items: center; gap: 12px;">
+          <img src="images/rogo.jpg" alt="Grow10 Logo" style="width: 44px; height: 44px; object-fit: contain; border-radius: 8px;">
+          <span style="font-weight: 800; font-size: 1.75rem; color: #0f172a; tracking-wider; font-family: 'Inter', sans-serif;">
+            Grow<span style="color: #2563eb;">10</span>
+          </span>
+        </div>
+      </div>
+      <div class="modal-body" style="padding: 0;">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem; text-align: center;">
+          背番号を入力してログインしてください。
         </p>
         <div style="margin-bottom: 1.5rem;">
-          <input type="text" id="login-user-input" class="goal-input-area" placeholder="例: 10" style="min-height: 48px; width: 100%; padding: 10px 14px; border-radius: 8px;" onkeydown="if(event.key==='Enter') switchUser()">
-          <p id="login-error-msg" style="color: #ef4444; font-size: 0.85rem; margin-top: 0.5rem; display: none;"></p>
+          <input type="text" id="login-user-input" class="goal-input-area" placeholder="例: 10" style="min-height: 48px; width: 100%; padding: 10px 14px; border-radius: 8px; text-align: center; font-size: 1.1rem; border: 1.5px solid #cbd5e1;" onkeydown="if(event.key==='Enter') switchUser()">
+          <p id="login-error-msg" style="color: #ef4444; font-size: 0.85rem; margin-top: 0.5rem; display: none; text-align: center;"></p>
         </div>
-        <button id="login-btn-submit" class="btn-primary" style="width: 100%; justify-content: center;" onclick="switchUser()">このユーザーでログイン</button>
+        <button id="login-btn-submit" class="btn-primary" style="width: 100%; justify-content: center; min-height: 48px; font-size: 1rem;" onclick="switchUser()">ログイン</button>
       </div>
     </div>
   </div>
@@ -618,7 +628,7 @@
     <div class="chigiri-modal-content">
       <h2 class="chigiri-title">おい、待てよ！</h2>
       <p class="chigiri-desc">
-        ダッシュボードを見る前に、今日の<strong style="color:var(--accent-amber);">「契り（Chigiri）」</strong>を立てろ！<br>
+        ダッシュボードを見る前に、今日の<strong style="color:#d97706;">「契り」</strong>を立てろ！<br>
         成長の機会を逃すな！
       </p>
       <input type="text" id="chigiri-input" class="chigiri-input" placeholder="例: 今日は絶対に発言する！" autocomplete="off">

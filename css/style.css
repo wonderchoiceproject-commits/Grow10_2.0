@@ -27,8 +27,8 @@
 
   /* Text */
   --text-primary:     #0a2540;        /* Deep Blue Text */
-  --text-secondary:   #4b5563;
-  --text-muted:       #9ca3af;
+  --text-secondary:   #334155;
+  --text-muted:       #64748b;
 
   /* Typography */
   --font-body:        'Inter', 'Noto Sans JP', sans-serif;
@@ -163,7 +163,7 @@ aside {
 }
 
 .nav-item.active button {
-  background:  linear-gradient(90deg, rgba(99,102,241,0.1), rgba(139,92,246,0.05));
+  background:  rgba(99, 102, 241, 0.08);
   color:       var(--accent-indigo);
   font-weight: 600;
   box-shadow:  inset 3px 0 0 var(--accent-indigo);
@@ -702,6 +702,24 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
 .modal-overlay.open { display: flex; }
 
+.modal-overlay.login-overlay {
+  background:      #ffffff !important;
+  backdrop-filter: none !important;
+  z-index:         1100 !important;
+}
+
+.modal-overlay.login-overlay .modal-content {
+  border:          none !important;
+  box-shadow:      none !important;
+  background:      #ffffff !important;
+  animation:       modalFadeIn 0.3s ease-out !important;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .modal-content {
   background:     #ffffff;
   border:         1px solid rgba(0,0,0,0.1);
@@ -933,7 +951,7 @@ a:hover { text-decoration: underline; }
 
 /* Overall Goal Banner */
 .overall-goal-banner {
-  background: var(--gradient-brand);
+  background: #0a2540;
   border-radius: var(--border-radius-md);
   padding: 1.25rem 1.5rem;
   margin-bottom: 1.5rem;
@@ -958,8 +976,8 @@ a:hover { text-decoration: underline; }
 
 /* Chigiri Display Card */
 .chigiri-display-card {
-  border: 1px solid rgba(251, 191, 36, 0.3);
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: #fffbeb;
 }
 .chigiri-content {
   font-size: 1.1rem;
